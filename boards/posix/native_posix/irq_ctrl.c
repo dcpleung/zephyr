@@ -93,14 +93,14 @@ int hw_irq_ctrl_get_highest_prio_irq(void)
 		return -1;
 	}
 
-	u64_t irq_status = hw_irq_ctrl_get_irq_status();
+	u64_t local_irq_status = hw_irq_ctrl_get_irq_status();
 	int winner = -1;
 	int winner_prio = 256;
 
-	while (irq_status != 0) {
-		int irq_nbr = find_lsb_set(irq_status) - 1;
+	while (local_irq_status != 0) {
+		int irq_nbr = find_lsb_set(local_irq_status) - 1;
 
-		irq_status &= ~((u64_t) 1 << irq_nbr);
+		local_irq_status &= ~((u64_t) 1 << irq_nbr);
 		if ((winner_prio > (int)irq_prio[irq_nbr])
 		   && (currently_running_prio > (int)irq_prio[irq_nbr])) {
 			winner = irq_nbr;
