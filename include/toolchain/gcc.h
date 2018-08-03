@@ -58,13 +58,15 @@
 #endif
 
 /* Unaligned access */
-#define UNALIGNED_GET(p)						\
+#define UNALIGNED_GET_HELPER(p, q)					\
 __extension__ ({							\
 	struct  __attribute__((__packed__)) {				\
 		__typeof__(*(p)) __v;					\
-	} *__p = (__typeof__(__p)) (p);					\
-	__p->__v;							\
+	} *q = (__typeof__(q)) (p);					\
+	q->__v;								\
 })
+#define UNALIGNED_GET(p) \
+	UNALIGNED_GET_HELPER(p, unaligned_get_##__COUNTER__)
 
 
 #if __GNUC__ >= 7 && defined(CONFIG_ARM)
