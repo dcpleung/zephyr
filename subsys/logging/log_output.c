@@ -127,10 +127,10 @@ static void color_print(struct log_msg *msg,
 		u32_t level = log_msg_level_get(msg);
 
 		if (colors[level] != NULL) {
-			const char *color = start ?
+			const char *c = start ?
 					 colors[level] : LOG_COLOR_CODE_DEFAULT;
 
-			print(ctx, "%s", color);
+			print(ctx, "%s", c);
 		}
 	}
 }

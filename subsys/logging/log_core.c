@@ -418,11 +418,11 @@ void log_filter_set(struct log_backend const *const backend,
 		u32_t *filters = log_dynamic_filters_get(src_id);
 
 		if (backend == NULL) {
-			struct log_backend const *backend;
+			struct log_backend const *be;
 
 			for (int i = 0; i < log_backend_count_get(); i++) {
-				backend = log_backend_get(i);
-				log_filter_set(backend, domain_id,
+				be = log_backend_get(i);
+				log_filter_set(be, domain_id,
 					       src_id, level);
 			}
 		} else {
