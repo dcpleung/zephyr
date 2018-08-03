@@ -186,10 +186,10 @@ void check_tree(int size)
 	_check_tree(size, 1);
 }
 
-void checked_insert(struct rbtree *tree, struct rbnode *node)
+void checked_insert(struct rbtree *rb_tree, struct rbnode *node)
 {
 	current_insertee = node;
-	rb_insert(tree, node);
+	rb_insert(rb_tree, node);
 	current_insertee = NULL;
 }
 
