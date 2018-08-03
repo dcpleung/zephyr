@@ -232,13 +232,13 @@ int lifo_test(void)
 			 NULL, (void *) NUMBER_OF_LOOPS, NULL,
 			 K_PRIO_COOP(3), 0, K_NO_WAIT);
 	for (i = 0; i < NUMBER_OF_LOOPS / 2; i++) {
-		int element[2];
+		int elem[2];
 		int *pelement;
 
-		element[1] = 2 * i;
-		k_lifo_put(&lifo1, element);
-		element[1] = 2 * i + 1;
-		k_lifo_put(&lifo1, element);
+		elem[1] = 2 * i;
+		k_lifo_put(&lifo1, elem);
+		elem[1] = 2 * i + 1;
+		k_lifo_put(&lifo1, elem);
 
 		pelement = (int *)k_lifo_get(&lifo2,
 						     K_FOREVER);
