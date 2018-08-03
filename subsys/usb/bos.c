@@ -37,19 +37,19 @@ const void *usb_bos_get_header(void)
 
 void usb_bos_fix_total_length(void)
 {
-	struct usb_bos_descriptor *hdr = (void *)__usb_bos_desc_start;
+	struct usb_bos_descriptor *bos_hdr = (void *)__usb_bos_desc_start;
 
-	hdr->wTotalLength = usb_bos_get_length();
+	bos_hdr->wTotalLength = usb_bos_get_length();
 }
 
 void usb_bos_register_cap(struct usb_bos_platform_descriptor *desc)
 {
-	struct usb_bos_descriptor *hdr = (void *)__usb_bos_desc_start;
+	struct usb_bos_descriptor *bos_hdr = (void *)__usb_bos_desc_start;
 
 	/* Has effect only on first register */
-	hdr->wTotalLength = usb_bos_get_length();
+	bos_hdr->wTotalLength = usb_bos_get_length();
 
-	hdr->bNumDeviceCaps += 1;
+	bos_hdr->bNumDeviceCaps += 1;
 }
 
 int usb_handle_bos(struct usb_setup_packet *setup,
