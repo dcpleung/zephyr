@@ -254,16 +254,16 @@ cbor_internal_read_object(CborValue *root_value,
                 break;
 #endif
             case CborAttrByteStringType: {
-                size_t len = cursor->len;
+                size_t len2 = cursor->len;
                 err |= cbor_value_copy_byte_string(&cur_value, lptr,
-                                                   &len, NULL);
-                *cursor->addr.bytestring.len = len;
+                                                   &len2, NULL);
+                *cursor->addr.bytestring.len = len2;
                 break;
             }
             case CborAttrTextStringType: {
-                size_t len = cursor->len;
+                size_t len2 = cursor->len;
                 err |= cbor_value_copy_text_string(&cur_value, lptr,
-                                                   &len, NULL);
+                                                   &len2, NULL);
                 break;
             }
             case CborAttrArrayType:
