@@ -364,18 +364,18 @@ struct net_route_entry *net_route_add(struct net_if *iface,
 #if defined(CONFIG_NET_DEBUG_ROUTE)
 		do {
 			char out[NET_IPV6_ADDR_LEN];
-			struct in6_addr *tmp;
+			struct in6_addr *in6addr_tmp;
 			struct net_linkaddr_storage *llstorage;
 
 			snprintk(out, sizeof(out), "%s",
 				 net_sprint_ipv6_addr(&route->addr));
 
-			tmp = net_route_get_nexthop(route);
-			nbr = net_ipv6_nbr_lookup(iface, tmp);
+			in6addr_tmp = net_route_get_nexthop(route);
+			nbr = net_ipv6_nbr_lookup(iface, in6addr_tmp);
 			llstorage = net_nbr_get_lladdr(nbr->idx);
 
 			NET_DBG("Removing the oldest route %s via %s [%s]",
-				out, net_sprint_ipv6_addr(tmp),
+				out, net_sprint_ipv6_addr(in6addr_tmp),
 				net_sprint_ll_addr(llstorage->addr,
 						   llstorage->len));
 		} while (0);

@@ -300,7 +300,7 @@ static int lwm2m_setup(void)
 	return 0;
 }
 
-static void rd_client_event(struct lwm2m_ctx *client,
+static void rd_client_event(struct lwm2m_ctx *ctx,
 			    enum lwm2m_rd_client_event client_event)
 {
 	switch (client_event) {

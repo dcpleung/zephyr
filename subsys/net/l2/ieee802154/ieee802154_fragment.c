@@ -361,16 +361,16 @@ static inline void clear_reass_cache(u16_t size, u16_t tag)
  */
 static void reass_timeout(struct k_work *work)
 {
-	struct frag_cache *cache = CONTAINER_OF(work, struct frag_cache, timer);
+	struct frag_cache *fcache = CONTAINER_OF(work, struct frag_cache, timer);
 
-	if (cache->pkt) {
-		net_pkt_unref(cache->pkt);
+	if (fcache->pkt) {
+		net_pkt_unref(fcache->pkt);
 	}
 
-	cache->pkt = NULL;
-	cache->size = 0;
-	cache->tag = 0;
-	cache->used = false;
+	fcache->pkt = NULL;
+	fcache->size = 0;
+	fcache->tag = 0;
+	fcache->used = false;
 }
 
 /**
@@ -464,7 +464,7 @@ static inline bool copy_frag(struct net_pkt *pkt,
 static inline enum net_verdict add_frag_to_cache(struct net_pkt *pkt,
 						 bool first)
 {
-	struct frag_cache *cache;
+	struct frag_cache *fcache;
 	struct net_buf *frag;
 	u16_t size;
 	u16_t tag;
@@ -504,10 +504,10 @@ static inline enum net_verdict add_frag_to_cache(struct net_pkt *pkt,
 	frag = pkt->frags;
 	pkt->frags = NULL;
 
-	cache = get_reass_cache(size, tag);
-	if (!cache) {
-		cache = set_reass_cache(pkt, size, tag);
-		if (!cache) {
+	fcache = get_reass_cache(size, tag);
+	if (!fcache) {
+		fcache = set_reass_cache(pkt, size, tag);
+		if (!fcache) {
 			NET_ERR("Could not get a cache entry");
 			pkt->frags = frag;
 			return NET_DROP;
@@ -516,13 +516,13 @@ static inline enum net_verdict add_frag_to_cache(struct net_pkt *pkt,
 		/* If write failed, then attach frag back to incoming packet
 		 * and return NET_DROP, caller will take care of freeing it.
 		 */
-		if (!copy_frag(cache->pkt, frag, offset)) {
+		if (!copy_frag(fcache->pkt, frag, offset)) {
 			pkt->frags = frag;
 
 			/* Initialize to NULL to prevent duble free. It's only
 			 * needed here because this is the first fragment.
 			 */
-			cache->pkt = NULL;
+			fcache->pkt = NULL;
 
 			clear_reass_cache(size, tag);
 
@@ -537,7 +537,7 @@ static inline enum net_verdict add_frag_to_cache(struct net_pkt *pkt,
 	}
 
 	/* Add data packet to reassembly packet */
-	if (!copy_frag(cache->pkt, frag, offset)) {
+	if (!copy_frag(fcache->pkt, frag, offset)) {
 		pkt->frags = frag;
 
 		clear_reass_cache(size, tag);
@@ -546,13 +546,13 @@ static inline enum net_verdict add_frag_to_cache(struct net_pkt *pkt,
 	}
 
 	/* Check if all the fragments are received or not */
-	if (net_pkt_get_len(cache->pkt) == size) {
+	if (net_pkt_get_len(fcache->pkt) == size) {
 		/* Assign frags back to input packet. */
-		pkt->frags = cache->pkt->frags;
-		cache->pkt->frags = NULL;
+		pkt->frags = fcache->pkt->frags;
+		fcache->pkt->frags = NULL;
 
 		/* Lengths are elided in compression, so calculate it. */
-		update_protocol_header_lengths(pkt, cache->size);
+		update_protocol_header_lengths(pkt, fcache->size);
 
 		/* Once reassemble is done, cache is no longer needed. */
 		clear_reass_cache(size, tag);

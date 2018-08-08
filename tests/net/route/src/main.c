@@ -409,19 +409,19 @@ static void route_get_nexthop(void)
 
 static void route_lookup_ok(void)
 {
-	struct net_route_entry *entry;
+	struct net_route_entry *rte_entry;
 
-	entry = net_route_lookup(my_iface, &dest_addr);
-	zassert_not_null(entry,
+	rte_entry = net_route_lookup(my_iface, &dest_addr);
+	zassert_not_null(rte_entry,
 			 "Route lookup failed");
 }
 
 static void route_lookup_fail(void)
 {
-	struct net_route_entry *entry;
+	struct net_route_entry *rte_entry;
 
-	entry = net_route_lookup(my_iface, &peer_addr);
-	zassert_is_null(entry,
+	rte_entry = net_route_lookup(my_iface, &peer_addr);
+	zassert_is_null(rte_entry,
 			"Route lookup failed for peer address");
 }
 

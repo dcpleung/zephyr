@@ -84,7 +84,7 @@ static void send_error_response(struct coap_resource *resource,
 				struct coap_packet *request,
 				struct sockaddr_in6 *from)
 {
-	struct net_context *context;
+	struct net_context *ctx;
 	struct coap_packet response;
 	struct net_pkt *pkt;
 	struct net_buf *frag;
@@ -92,14 +92,14 @@ static void send_error_response(struct coap_resource *resource,
 	int r;
 
 	id = coap_header_get_id(request);
-	context = net_pkt_context(request->pkt);
+	ctx = net_pkt_context(request->pkt);
 
-	pkt = net_pkt_get_tx(context, PKT_WAIT_TIME);
+	pkt = net_pkt_get_tx(ctx, PKT_WAIT_TIME);
 	if (!pkt) {
 		return;
 	}
 
-	frag = net_pkt_get_data(context, PKT_WAIT_TIME);
+	frag = net_pkt_get_data(ctx, PKT_WAIT_TIME);
 	if (!frag) {
 		net_pkt_unref(pkt);
 		return;
@@ -411,7 +411,7 @@ static struct coap_resource resources[] = {
 	{ },
 };
 
-static void udp_receive(struct net_context *context,
+static void udp_receive(struct net_context *ctx,
 			struct net_pkt *pkt,
 			int status,
 			void *user_data)

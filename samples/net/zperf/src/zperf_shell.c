@@ -517,8 +517,8 @@ static void shell_tcp_upload_print_stats(struct zperf_results *results)
 static int setup_contexts(struct net_context **context6,
 			  struct net_context **context4,
 			  sa_family_t family,
-			  struct sockaddr_in6 *ipv6,
-			  struct sockaddr_in *ipv4,
+			  struct sockaddr_in6 *ip_v6,
+			  struct sockaddr_in *ip_v4,
 			  int port,
 			  bool is_udp,
 			  char *argv0)
@@ -536,8 +536,8 @@ static int setup_contexts(struct net_context **context6,
 		return -1;
 	}
 
-	ipv6->sin6_port = htons(port);
-	ipv6->sin6_family = AF_INET6;
+	ip_v6->sin6_port = htons(port);
+	ip_v6->sin6_family = AF_INET6;
 #endif
 
 #if defined(CONFIG_NET_IPV4)
@@ -551,28 +551,28 @@ static int setup_contexts(struct net_context **context6,
 		return -1;
 	}
 
-	ipv4->sin_port = htons(port);
-	ipv4->sin_family = AF_INET;
+	ip_v4->sin_port = htons(port);
+	ip_v4->sin_family = AF_INET;
 #endif
 
 	if (family == AF_INET6 && *context6) {
 		ret = net_context_bind(*context6,
-				       (struct sockaddr *)ipv6,
+				       (struct sockaddr *)ip_v6,
 				       sizeof(struct sockaddr_in6));
 		if (ret < 0) {
 			printk("[%s] Cannot bind IPv6 port %d (%d)",
-			       argv0, ntohs(ipv6->sin6_port), ret);
+			       argv0, ntohs(ip_v6->sin6_port), ret);
 			return -1;
 		}
 	}
 
 	if (family == AF_INET && *context4) {
 		ret = net_context_bind(*context4,
-				       (struct sockaddr *)ipv4,
+				       (struct sockaddr *)ip_v4,
 				       sizeof(struct sockaddr_in));
 		if (ret < 0) {
 			printk("[%s] Cannot bind IPv4 port %d (%d)",
-			       argv0, ntohs(ipv4->sin_port), ret);
+			       argv0, ntohs(ip_v4->sin_port), ret);
 			return -1;
 		}
 	}
@@ -589,8 +589,8 @@ static int setup_contexts(struct net_context **context6,
 static int execute_upload(struct net_context *context6,
 			  struct net_context *context4,
 			  sa_family_t family,
-			  struct sockaddr_in6 *ipv6,
-			  struct sockaddr_in *ipv4,
+			  struct sockaddr_in6 *ip_v6,
+			  struct sockaddr_in *ip_v4,
 			  bool is_udp,
 			  char *argv0,
 			  unsigned int duration_in_ms,
@@ -613,7 +613,7 @@ static int execute_upload(struct net_context *context6,
 		 * some time and start the test after that.
 		 */
 		net_icmpv6_send_echo_request(net_if_get_default(),
-					     &ipv6->sin6_addr, 0, 0);
+					     &ip_v6->sin6_addr, 0, 0);
 
 		k_sleep(1 * MSEC_PER_SEC);
 	}
@@ -627,8 +627,8 @@ static int execute_upload(struct net_context *context6,
 
 		if (family == AF_INET6 && context6) {
 			ret = net_context_connect(context6,
-						  (struct sockaddr *)ipv6,
-						  sizeof(*ipv6),
+						  (struct sockaddr *)ip_v6,
+						  sizeof(*ip_v6),
 						  NULL,
 						  K_NO_WAIT,
 						  NULL);
@@ -645,8 +645,8 @@ static int execute_upload(struct net_context *context6,
 
 		if (family == AF_INET && context4) {
 			ret = net_context_connect(context4,
-						  (struct sockaddr *)ipv4,
-						  sizeof(*ipv4),
+						  (struct sockaddr *)ip_v4,
+						  sizeof(*ip_v4),
 						  NULL,
 						  K_NO_WAIT,
 						  NULL);
@@ -667,8 +667,8 @@ static int execute_upload(struct net_context *context6,
 #if defined(CONFIG_NET_TCP)
 		if (family == AF_INET6 && context6) {
 			ret = net_context_connect(context6,
-						  (struct sockaddr *)ipv6,
-						  sizeof(*ipv6),
+						  (struct sockaddr *)ip_v6,
+						  sizeof(*ip_v6),
 						  NULL,
 						  WAIT_CONNECT,
 						  NULL);
@@ -693,8 +693,8 @@ static int execute_upload(struct net_context *context6,
 
 		if (family == AF_INET && context4) {
 			ret = net_context_connect(context4,
-						  (struct sockaddr *)ipv4,
-						  sizeof(*ipv4),
+						  (struct sockaddr *)ip_v4,
+						  sizeof(*ip_v4),
 						  NULL,
 						  WAIT_CONNECT,
 						  NULL);
@@ -727,8 +727,8 @@ out:
 
 static int shell_cmd_upload(int argc, char *argv[])
 {
-	struct sockaddr_in6 ipv6 = { .sin6_family = AF_INET6 };
-	struct sockaddr_in ipv4 = { .sin_family = AF_INET };
+	struct sockaddr_in6 ip_v6 = { .sin6_family = AF_INET6 };
+	struct sockaddr_in ip_v4 = { .sin_family = AF_INET };
 	struct net_context *context6 = NULL, *context4 = NULL;
 	sa_family_t family = AF_UNSPEC;
 	unsigned int duration_in_ms, packet_size, rate_in_kbps;
@@ -759,49 +759,49 @@ static int shell_cmd_upload(int argc, char *argv[])
 
 #if defined(CONFIG_NET_IPV6) && !defined(CONFIG_NET_IPV4)
 	if (parse_ipv6_addr(argv[start + 1], argv[start + 2],
-			    &ipv6, argv[start]) < 0) {
+			    &ip_v6, argv[start]) < 0) {
 		printk("[%s] ERROR! Please specify the IP address of the "
 			"remote server\n",  argv[start]);
 		return -1;
 	}
 
 	printk("[%s] Connecting to %s\n", argv[start],
-	       net_sprint_ipv6_addr(&ipv6.sin6_addr));
+	       net_sprint_ipv6_addr(&ip_v6.sin6_addr));
 
 	family = AF_INET6;
 #endif
 
 #if defined(CONFIG_NET_IPV4) && !defined(CONFIG_NET_IPV6)
 	if (parse_ipv4_addr(argv[start + 1], argv[start + 2],
-			    &ipv4, argv[start]) < 0) {
+			    &ip_v4, argv[start]) < 0) {
 		printk("[%s] ERROR! Please specify the IP address of the "
 		       "remote server\n",  argv[start]);
 		return -1;
 	}
 
 	printk("[%s] Connecting to %s\n", argv[start],
-	       net_sprint_ipv4_addr(&ipv4.sin_addr));
+	       net_sprint_ipv4_addr(&ip_v4.sin_addr));
 
 	family = AF_INET;
 #endif
 
 #if defined(CONFIG_NET_IPV6) && defined(CONFIG_NET_IPV4)
 	if (parse_ipv6_addr(argv[start + 1], argv[start + 2],
-			    &ipv6, argv[start]) < 0) {
+			    &ip_v6, argv[start]) < 0) {
 		if (parse_ipv4_addr(argv[start + 1], argv[start + 2],
-				    &ipv4, argv[start]) < 0) {
+				    &ip_v4, argv[start]) < 0) {
 			printk("[%s] ERROR! Please specify the IP address "
 			       "of the remote server\n",  argv[start]);
 			return -1;
 		}
 
 		printk("[%s] Connecting to %s\n", argv[start],
-		       net_sprint_ipv4_addr(&ipv4.sin_addr));
+		       net_sprint_ipv4_addr(&ip_v4.sin_addr));
 
 		family = AF_INET;
 	} else {
 		printk("[%s] Connecting to %s\n", argv[start],
-		       net_sprint_ipv6_addr(&ipv6.sin6_addr));
+		       net_sprint_ipv6_addr(&ip_v6.sin6_addr));
 
 		family = AF_INET6;
 	}
@@ -840,7 +840,7 @@ static int shell_cmd_upload(int argc, char *argv[])
 		rate_in_kbps = 10;
 	}
 
-	return execute_upload(context6, context4, family, &ipv6, &ipv4,
+	return execute_upload(context6, context4, family, &ip_v6, &ip_v4,
 			      is_udp, argv[start], duration_in_ms,
 			      packet_size, rate_in_kbps);
 }

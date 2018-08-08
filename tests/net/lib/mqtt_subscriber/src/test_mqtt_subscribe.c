@@ -68,15 +68,15 @@ static struct mqtt_client_ctx client_ctx;
  */
 static void connect_cb(struct mqtt_ctx *mqtt_ctx)
 {
-	struct mqtt_client_ctx *client_ctx;
+	struct mqtt_client_ctx *mc_ctx;
 
-	client_ctx = CONTAINER_OF(mqtt_ctx, struct mqtt_client_ctx, mqtt_ctx);
+	mc_ctx = CONTAINER_OF(mqtt_ctx, struct mqtt_client_ctx, mqtt_ctx);
 
 	printk("[%s:%d]", __func__, __LINE__);
 
-	if (client_ctx->connect_data) {
+	if (mc_ctx->connect_data) {
 		printk(" user_data: %s",
-		       (const char *)client_ctx->connect_data);
+		       (const char *)mc_ctx->connect_data);
 	}
 
 	printk("\n");
@@ -87,15 +87,15 @@ static void connect_cb(struct mqtt_ctx *mqtt_ctx)
  */
 static void disconnect_cb(struct mqtt_ctx *mqtt_ctx)
 {
-	struct mqtt_client_ctx *client_ctx;
+	struct mqtt_client_ctx *mc_ctx;
 
-	client_ctx = CONTAINER_OF(mqtt_ctx, struct mqtt_client_ctx, mqtt_ctx);
+	mc_ctx = CONTAINER_OF(mqtt_ctx, struct mqtt_client_ctx, mqtt_ctx);
 
 	printk("[%s:%d]", __func__, __LINE__);
 
-	if (client_ctx->disconnect_data) {
+	if (mc_ctx->disconnect_data) {
 		printk(" user_data: %s",
-		       (const char *)client_ctx->disconnect_data);
+		       (const char *)mc_ctx->disconnect_data);
 	}
 
 	printk("\n");
@@ -117,11 +117,11 @@ static void disconnect_cb(struct mqtt_ctx *mqtt_ctx)
 static int publish_rx_cb(struct mqtt_ctx *mqtt_ctx, struct mqtt_publish_msg
 		*msg, u16_t pkt_id, enum mqtt_packet type)
 {
-	struct mqtt_client_ctx *client_ctx;
+	struct mqtt_client_ctx *mc_ctx;
 	const char *str;
 	int rc = 0;
 
-	client_ctx = CONTAINER_OF(mqtt_ctx, struct mqtt_client_ctx, mqtt_ctx);
+	mc_ctx = CONTAINER_OF(mqtt_ctx, struct mqtt_client_ctx, mqtt_ctx);
 
 	switch (type) {
 	case MQTT_PUBLISH:
@@ -139,9 +139,9 @@ static int publish_rx_cb(struct mqtt_ctx *mqtt_ctx, struct mqtt_publish_msg
 		str = "Invalid MQTT packet";
 	}
 
-	if (client_ctx->subscribe_data) {
+	if (mc_ctx->subscribe_data) {
 		printk(", user_data: %s",
-		       (const char *)client_ctx->subscribe_data);
+		       (const char *)mc_ctx->subscribe_data);
 	}
 
 	printk("\n");
@@ -156,16 +156,16 @@ static int publish_rx_cb(struct mqtt_ctx *mqtt_ctx, struct mqtt_publish_msg
 static int subscriber_cb(struct mqtt_ctx *mqtt_ctx, u16_t pkt_id,
 		u8_t items, enum mqtt_qos qos[])
 {
-	struct mqtt_client_ctx *client_ctx;
+	struct mqtt_client_ctx *mc_ctx;
 
-	client_ctx = CONTAINER_OF(mqtt_ctx, struct mqtt_client_ctx, mqtt_ctx);
+	mc_ctx = CONTAINER_OF(mqtt_ctx, struct mqtt_client_ctx, mqtt_ctx);
 
 	printk("[%s:%d] items: %d packet id: %u", __func__, __LINE__,
 			items, pkt_id);
 
-	if (client_ctx->subscribe_data) {
+	if (mc_ctx->subscribe_data) {
 		printk(" user_data: %s",
-				(const char *)client_ctx->subscribe_data);
+				(const char *)mc_ctx->subscribe_data);
 	}
 
 	printk("\n");
@@ -179,15 +179,15 @@ static int subscriber_cb(struct mqtt_ctx *mqtt_ctx, u16_t pkt_id,
  */
 static int unsubscribe_cb(struct mqtt_ctx *mqtt_ctx, u16_t pkt_id)
 {
-	struct mqtt_client_ctx *client_ctx;
+	struct mqtt_client_ctx *mc_ctx;
 
-	client_ctx = CONTAINER_OF(mqtt_ctx, struct mqtt_client_ctx, mqtt_ctx);
+	mc_ctx = CONTAINER_OF(mqtt_ctx, struct mqtt_client_ctx, mqtt_ctx);
 
 	printk("[%s:%d] packet id: %u", __func__, __LINE__, pkt_id);
 
-	if (client_ctx->unsubscribe_data) {
+	if (mc_ctx->unsubscribe_data) {
 		printk(" user_data: %s",
-				(const char *)client_ctx->unsubscribe_data);
+				(const char *)mc_ctx->unsubscribe_data);
 	}
 
 	printk("\n");
@@ -216,22 +216,22 @@ static char *get_mqtt_topic(void)
 	       (func), rc, RC_STR(rc))
 
 /* In this routine we block until the connected variable is 1 */
-static int try_to_connect(struct mqtt_client_ctx *client_ctx)
+static int try_to_connect(struct mqtt_client_ctx *mc_ctx)
 {
 	int i = 0;
 
-	while (i++ < APP_CONNECT_TRIES && !client_ctx->mqtt_ctx.connected) {
+	while (i++ < APP_CONNECT_TRIES && !mc_ctx->mqtt_ctx.connected) {
 		int rc;
 
-		rc = mqtt_tx_connect(&client_ctx->mqtt_ctx,
-				     &client_ctx->connect_msg);
+		rc = mqtt_tx_connect(&mc_ctx->mqtt_ctx,
+				     &mc_ctx->connect_msg);
 		k_sleep(APP_SLEEP_MSECS);
 		if (rc != 0) {
 			continue;
 		}
 	}
 
-	if (client_ctx->mqtt_ctx.connected) {
+	if (mc_ctx->mqtt_ctx.connected) {
 		return TC_PASS;
 	}
 

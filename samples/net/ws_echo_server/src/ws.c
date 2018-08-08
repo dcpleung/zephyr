@@ -212,7 +212,7 @@ static int http_response_soft_404(struct http_ctx *ctx,
 			     strlen(not_found), dst);
 }
 
-static int append_and_send_data(struct http_ctx *http_ctx,
+static int append_and_send_data(struct http_ctx *ctx,
 				const struct sockaddr *dst,
 				bool final, const char *fmt, ...)
 {
@@ -232,7 +232,7 @@ static int append_and_send_data(struct http_ctx *http_ctx,
 			opcode = WS_OPCODE_DATA_TEXT;
 		}
 
-		ret = ws_send_msg_to_client(http_ctx, buf, len,
+		ret = ws_send_msg_to_client(ctx, buf, len,
 					    opcode, final, dst, NULL);
 		if (ret < 0) {
 			NET_DBG("Could not send %zd bytes data to client",
@@ -251,7 +251,7 @@ static int append_and_send_data(struct http_ctx *http_ctx,
 		opcode = WS_OPCODE_DATA_TEXT;
 	}
 
-	ret = ws_send_msg_to_client(http_ctx, buf, len,
+	ret = ws_send_msg_to_client(ctx, buf, len,
 				    opcode, final, dst, NULL);
 	if (ret < 0) {
 		NET_DBG("Could not send %zd bytes data to client", len);
@@ -410,13 +410,13 @@ static void ws_closed(struct http_ctx *ctx,
 
 static const char *get_string(int str_len, const char *str)
 {
-	static char buf[64];
-	int len = min(str_len, sizeof(buf) - 1);
+	static char buf2[64];
+	int len = min(str_len, sizeof(buf2) - 1);
 
-	memcpy(buf, str, len);
-	buf[len] = '\0';
+	memcpy(buf2, str, len);
+	buf2[len] = '\0';
 
-	return buf;
+	return buf2;
 }
 
 static enum http_verdict default_handler(struct http_ctx *ctx,

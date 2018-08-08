@@ -1291,7 +1291,7 @@ int net_context_recv(struct net_context *context,
 
 #if defined(CONFIG_NET_CONTEXT_SYNC_RECV)
 	if (timeout) {
-		int ret;
+		int ret2;
 
 		/* Make sure we have the lock, then the
 		 * net_context_packet_received() callback will release the
@@ -1299,8 +1299,8 @@ int net_context_recv(struct net_context *context,
 		 */
 		k_sem_reset(&context->recv_data_wait);
 
-		ret = k_sem_take(&context->recv_data_wait, timeout);
-		if (ret == -EAGAIN) {
+		ret2 = k_sem_take(&context->recv_data_wait, timeout);
+		if (ret2 == -EAGAIN) {
 			return -ETIMEDOUT;
 		}
 	}

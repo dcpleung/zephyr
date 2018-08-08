@@ -28,11 +28,11 @@ static const struct net_eth_addr gptp_multicast_eth_addr = {
 
 #define NET_GPTP_INFO(msg, pkt) do {					\
 	if (IS_ENABLED(NET_LOG_ENABLED)) {				\
-		struct gptp_hdr *hdr = GPTP_HDR(pkt);			\
+		struct gptp_hdr *_hdr = GPTP_HDR(pkt);			\
 									\
-		ARG_UNUSED(hdr);					\
+		ARG_UNUSED(_hdr);					\
 									\
-		if (hdr->message_type == GPTP_ANNOUNCE_MESSAGE) {	\
+		if (_hdr->message_type == GPTP_ANNOUNCE_MESSAGE) {	\
 			struct gptp_announce *ann = GPTP_ANNOUNCE(pkt);	\
 			char output[sizeof("xx:xx:xx:xx:xx:xx:xx:xx")];	\
 									\
@@ -42,7 +42,7 @@ static const struct net_eth_addr gptp_multicast_eth_addr = {
 				sizeof(output));			\
 									\
 			NET_DBG("Sending %s seq %d pkt %p GM %d/%d/0x%x/%d/%s",\
-				msg, ntohs(hdr->sequence_id), pkt,	\
+				msg, ntohs(_hdr->sequence_id), pkt,	\
 				ann->root_system_id.grand_master_prio1, \
 				ann->root_system_id.clk_quality.clock_class, \
 				ann->root_system_id.clk_quality.clock_accuracy,\
@@ -50,7 +50,7 @@ static const struct net_eth_addr gptp_multicast_eth_addr = {
 				output);				\
 		} else {						\
 			NET_DBG("Sending %s seq %d pkt %p", msg,	\
-				ntohs(hdr->sequence_id), pkt);		\
+				ntohs(_hdr->sequence_id), pkt);		\
 		}							\
 	}								\
 } while (0)

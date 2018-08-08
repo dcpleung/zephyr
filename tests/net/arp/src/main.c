@@ -274,11 +274,11 @@ fail:
 }
 
 static void setup_eth_header(struct net_if *iface, struct net_pkt *pkt,
-			     struct net_eth_addr *hwaddr, u16_t type)
+			     struct net_eth_addr *hw_addr, u16_t type)
 {
 	struct net_eth_hdr *hdr = (struct net_eth_hdr *)net_pkt_ll(pkt);
 
-	memcpy(&hdr->dst.addr, hwaddr, sizeof(struct net_eth_addr));
+	memcpy(&hdr->dst.addr, hw_addr, sizeof(struct net_eth_addr));
 	memcpy(&hdr->src.addr, net_if_get_link_addr(iface)->addr,
 	       sizeof(struct net_eth_addr));
 

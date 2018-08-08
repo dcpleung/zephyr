@@ -719,14 +719,14 @@ static size_t test_strlen(const char *str)
 }
 
 static
-int eval_buffers(u8_t *buf, u16_t buf_len, u8_t *expected,
+int eval_buffers(u8_t *pbuf, u16_t pbuf_len, u8_t *expected,
 		 u16_t len)
 {
-	if (buf_len != len) {
+	if (pbuf_len != len) {
 		goto exit_eval;
 	}
 
-	if (memcmp(expected, buf, buf_len) != 0) {
+	if (memcmp(expected, pbuf, pbuf_len) != 0) {
 		goto exit_eval;
 	}
 

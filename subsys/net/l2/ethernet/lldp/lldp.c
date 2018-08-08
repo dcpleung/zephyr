@@ -242,7 +242,7 @@ static int lldp_start(struct net_if *iface, u32_t mgmt_event)
 	return 0;
 }
 
-static void iface_event_handler(struct net_mgmt_event_callback *cb,
+static void iface_event_handler(struct net_mgmt_event_callback *evt_cb,
 				u32_t mgmt_event, struct net_if *iface)
 {
 	lldp_start(iface, mgmt_event);

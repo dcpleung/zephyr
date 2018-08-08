@@ -613,7 +613,7 @@ on_msg_rcvd(char *chan_name, char *umask, char *msg)
 	}
 
 	if (!strncmp(msg, "!help", 5)) {
-		char msg[64];
+		char msg2[64];
 		int ret;
 
 		/* TODO: loop through commands[] and create help text */
@@ -621,14 +621,14 @@ on_msg_rcvd(char *chan_name, char *umask, char *msg)
 		 *       sends it back
 		 */
 
-		ret = snprintk(msg, sizeof(msg), "%s, you're a grown up, figure"
+		ret = snprintk(msg2, sizeof(msg2), "%s, you're a grown up, figure"
 			       " it out", nick);
-		if (ret < 0 || ret >= sizeof(msg)) {
+		if (ret < 0 || ret >= sizeof(msg2)) {
 			zirc_chan_send_msg(chan_name,
 					   "Your nick is too long, and my"
 					   " stack is limited. Can't help you");
 		} else {
-			zirc_chan_send_msg(chan_name, msg);
+			zirc_chan_send_msg(chan_name, msg2);
 		}
 	}
 }

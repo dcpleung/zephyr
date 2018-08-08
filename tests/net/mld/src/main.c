@@ -84,17 +84,17 @@ static u8_t *net_test_get_mac(struct device *dev)
 	return context->mac_addr;
 }
 
-static void net_test_iface_init(struct net_if *iface)
+static void net_test_iface_init(struct net_if *p_iface)
 {
-	u8_t *mac = net_test_get_mac(net_if_get_device(iface));
+	u8_t *mac = net_test_get_mac(net_if_get_device(p_iface));
 
-	net_if_set_link_addr(iface, mac, sizeof(struct net_eth_addr),
+	net_if_set_link_addr(p_iface, mac, sizeof(struct net_eth_addr),
 			     NET_LINK_ETHERNET);
 }
 
 #define NET_ICMP_HDR(pkt) ((struct net_icmp_hdr *)net_pkt_icmp_data(pkt))
 
-static int tester_send(struct net_if *iface, struct net_pkt *pkt)
+static int tester_send(struct net_if *p_iface, struct net_pkt *pkt)
 {
 	struct net_icmp_hdr *icmp = NET_ICMP_HDR(pkt);
 
@@ -136,7 +136,7 @@ NET_DEVICE_INIT(net_test_mld, "net_test_mld",
 		127);
 
 static void group_joined(struct net_mgmt_event_callback *cb,
-			 u32_t nm_event, struct net_if *iface)
+			 u32_t nm_event, struct net_if *p_iface)
 {
 	if (nm_event != NET_EVENT_IPV6_MCAST_JOIN) {
 		/* Spurious callback. */
@@ -149,7 +149,7 @@ static void group_joined(struct net_mgmt_event_callback *cb,
 }
 
 static void group_left(struct net_mgmt_event_callback *cb,
-			 u32_t nm_event, struct net_if *iface)
+			 u32_t nm_event, struct net_if *p_iface)
 {
 	if (nm_event != NET_EVENT_IPV6_MCAST_LEAVE) {
 		/* Spurious callback. */
@@ -304,7 +304,7 @@ static void verify_leave_group(void)
 	is_leave_msg_ok = false;
 }
 
-static void send_query(struct net_if *iface)
+static void send_query(struct net_if *p_iface)
 {
 	struct net_pkt *pkt;
 	struct in6_addr dst;
@@ -313,13 +313,13 @@ static void send_query(struct net_if *iface)
 	/* Sent to all MLDv2-capable routers */
 	net_ipv6_addr_create(&dst, 0xff02, 0, 0, 0, 0, 0, 0, 0x0016);
 
-	pkt = net_pkt_get_reserve_tx(net_if_get_ll_reserve(iface, &dst),
+	pkt = net_pkt_get_reserve_tx(net_if_get_ll_reserve(p_iface, &dst),
 				     K_FOREVER);
 
 	pkt = net_ipv6_create(pkt,
 			      &peer_addr,
 			      &dst,
-			      iface,
+			      p_iface,
 			      NET_IPV6_NEXTHDR_HBHO);
 
 	NET_IPV6_HDR(pkt)->hop_limit = 1; /* RFC 3810 ch 7.4 */
@@ -354,13 +354,13 @@ static void send_query(struct net_if *iface)
 
 	net_ipv6_finalize(pkt, NET_IPV6_NEXTHDR_HBHO);
 
-	net_pkt_set_iface(pkt, iface);
+	net_pkt_set_iface(pkt, p_iface);
 
 	net_pkt_write_be16(pkt, pkt->frags,
 			   NET_IPV6H_LEN + ROUTER_ALERT_LEN + 2,
 			   &pos, ntohs(~net_calc_chksum_icmpv6(pkt)));
 
-	net_recv_data(iface, pkt);
+	net_recv_data(p_iface, pkt);
 }
 
 /* We are not really interested to parse the query at this point */
@@ -431,7 +431,7 @@ static void verify_send_report(void)
 
 static void test_allnodes(void)
 {
-	struct net_if *iface = NULL;
+	struct net_if *p_iface = NULL;
 	struct net_if_mcast_addr *ifmaddr;
 	struct in6_addr addr;
 
@@ -440,7 +440,7 @@ static void test_allnodes(void)
 	/* Let the DAD succeed so that the multicast address will be there */
 	k_sleep(DAD_TIMEOUT);
 
-	ifmaddr = net_if_ipv6_maddr_lookup(&addr, &iface);
+	ifmaddr = net_if_ipv6_maddr_lookup(&addr, &p_iface);
 
 	zassert_not_null(ifmaddr, "Interface does not contain "
 			"allnodes multicast address");
@@ -448,13 +448,13 @@ static void test_allnodes(void)
 
 static void test_solicit_node(void)
 {
-	struct net_if *iface = NULL;
+	struct net_if *p_iface = NULL;
 	struct net_if_mcast_addr *ifmaddr;
 	struct in6_addr addr;
 
 	net_ipv6_addr_create_solicited_node(&my_addr, &addr);
 
-	ifmaddr = net_if_ipv6_maddr_lookup(&addr, &iface);
+	ifmaddr = net_if_ipv6_maddr_lookup(&addr, &p_iface);
 
 	zassert_not_null(ifmaddr, "Interface does not contain "
 			"solicit node multicast address");

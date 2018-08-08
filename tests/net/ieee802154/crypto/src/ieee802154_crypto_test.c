@@ -47,7 +47,7 @@ static void print_caps(struct device *dev)
 	}
 }
 
-static void print_buffer(u8_t *buf, u8_t len)
+static void print_buffer(u8_t *p_buf, u8_t len)
 {
 	int i;
 
@@ -56,7 +56,7 @@ static void print_buffer(u8_t *buf, u8_t len)
 	printk("\t");
 
 	for (i = 0; len > 0; len--, i++) {
-		printk("%02x ", *buf++);
+		printk("%02x ", *p_buf++);
 
 		if (i == 7) {
 			printk("\n\t");

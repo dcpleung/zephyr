@@ -441,16 +441,16 @@ static inline void dbg_update_neighbor_lladdr_raw(u8_t *new_lladdr,
 
 #define dbg_addr_with_tgt(action, pkt_str, src, dst, target)		\
 	do {								\
-		char out[NET_IPV6_ADDR_LEN];				\
-		char tgt[NET_IPV6_ADDR_LEN];				\
+		char _out[NET_IPV6_ADDR_LEN];				\
+		char _tgt[NET_IPV6_ADDR_LEN];				\
 									\
-		snprintk(out, sizeof(out), "%s",			\
+		snprintk(_out, sizeof(_out), "%s",			\
 			 net_sprint_ipv6_addr(dst));			\
-		snprintk(tgt, sizeof(tgt), "%s",			\
+		snprintk(_tgt, sizeof(_tgt), "%s",			\
 			 net_sprint_ipv6_addr(target));			\
 									\
 		NET_DBG("%s %s from %s to %s, target %s", action,	\
-			pkt_str, net_sprint_ipv6_addr(src), out, tgt);	\
+			pkt_str, net_sprint_ipv6_addr(src), _out, _tgt);\
 									\
 	} while (0)
 
@@ -3243,7 +3243,7 @@ static void reassemble_packet(struct net_ipv6_reassembly *reass)
 	 */
 	for (i = 1; i < NET_IPV6_FRAGMENTS_MAX_PKT; i++) {
 		int removed_len;
-		int ret;
+		int ret2;
 
 		pkt = reass->pkt[i];
 
@@ -3256,10 +3256,10 @@ static void reassemble_packet(struct net_ipv6_reassembly *reass)
 		NET_DBG("Removing %d bytes from start of pkt %p",
 			removed_len, pkt->frags);
 
-		ret = net_pkt_pull(pkt, 0, removed_len);
-		if (ret) {
+		ret2 = net_pkt_pull(pkt, 0, removed_len);
+		if (ret2) {
 			NET_ERR("Failed to pull headers");
-			NET_ASSERT(ret != 0);
+			NET_ASSERT(ret2 != 0);
 		}
 
 		/* Attach the data to previous pkt */

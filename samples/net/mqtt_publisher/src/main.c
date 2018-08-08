@@ -129,15 +129,15 @@ int setup_cert(struct net_app_ctx *ctx, void *cert)
  */
 static void connect_cb(struct mqtt_ctx *mqtt_ctx)
 {
-	struct mqtt_client_ctx *client_ctx;
+	struct mqtt_client_ctx *mc_ctx;
 
-	client_ctx = CONTAINER_OF(mqtt_ctx, struct mqtt_client_ctx, mqtt_ctx);
+	mc_ctx = CONTAINER_OF(mqtt_ctx, struct mqtt_client_ctx, mqtt_ctx);
 
 	printk("[%s:%d]", __func__, __LINE__);
 
-	if (client_ctx->connect_data) {
+	if (mc_ctx->connect_data) {
 		printk(" user_data: %s",
-		       (const char *)client_ctx->connect_data);
+		       (const char *)mc_ctx->connect_data);
 	}
 
 	printk("\n");
@@ -148,15 +148,15 @@ static void connect_cb(struct mqtt_ctx *mqtt_ctx)
  */
 static void disconnect_cb(struct mqtt_ctx *mqtt_ctx)
 {
-	struct mqtt_client_ctx *client_ctx;
+	struct mqtt_client_ctx *mc_ctx;
 
-	client_ctx = CONTAINER_OF(mqtt_ctx, struct mqtt_client_ctx, mqtt_ctx);
+	mc_ctx = CONTAINER_OF(mqtt_ctx, struct mqtt_client_ctx, mqtt_ctx);
 
 	printk("[%s:%d]", __func__, __LINE__);
 
-	if (client_ctx->disconnect_data) {
+	if (mc_ctx->disconnect_data) {
 		printk(" user_data: %s",
-		       (const char *)client_ctx->disconnect_data);
+		       (const char *)mc_ctx->disconnect_data);
 	}
 
 	printk("\n");
@@ -178,11 +178,11 @@ static void disconnect_cb(struct mqtt_ctx *mqtt_ctx)
 static int publish_cb(struct mqtt_ctx *mqtt_ctx, u16_t pkt_id,
 		      enum mqtt_packet type)
 {
-	struct mqtt_client_ctx *client_ctx;
+	struct mqtt_client_ctx *mc_ctx;
 	const char *str;
 	int rc = 0;
 
-	client_ctx = CONTAINER_OF(mqtt_ctx, struct mqtt_client_ctx, mqtt_ctx);
+	mc_ctx = CONTAINER_OF(mqtt_ctx, struct mqtt_client_ctx, mqtt_ctx);
 
 	switch (type) {
 	case MQTT_PUBACK:
@@ -201,9 +201,9 @@ static int publish_cb(struct mqtt_ctx *mqtt_ctx, u16_t pkt_id,
 
 	printk("[%s:%d] <%s> packet id: %u", __func__, __LINE__, str, pkt_id);
 
-	if (client_ctx->publish_data) {
+	if (mc_ctx->publish_data) {
 		printk(", user_data: %s",
-		       (const char *)client_ctx->publish_data);
+		       (const char *)mc_ctx->publish_data);
 	}
 
 	printk("\n");
@@ -269,15 +269,15 @@ static void prepare_mqtt_publish_msg(struct mqtt_publish_msg *pub_msg,
 	       (func), rc, RC_STR(rc))
 
 /* In this routine we block until the connected variable is 1 */
-static int try_to_connect(struct mqtt_client_ctx *client_ctx)
+static int try_to_connect(struct mqtt_client_ctx *mc_ctx)
 {
 	int i = 0;
 
-	while (i++ < APP_CONNECT_TRIES && !client_ctx->mqtt_ctx.connected) {
+	while (i++ < APP_CONNECT_TRIES && !mc_ctx->mqtt_ctx.connected) {
 		int rc;
 
-		rc = mqtt_tx_connect(&client_ctx->mqtt_ctx,
-				     &client_ctx->connect_msg);
+		rc = mqtt_tx_connect(&mc_ctx->mqtt_ctx,
+				     &mc_ctx->connect_msg);
 		k_sleep(APP_SLEEP_MSECS);
 		PRINT_RESULT("mqtt_tx_connect", rc);
 		if (rc != 0) {
@@ -285,7 +285,7 @@ static int try_to_connect(struct mqtt_client_ctx *client_ctx)
 		}
 	}
 
-	if (client_ctx->mqtt_ctx.connected) {
+	if (mc_ctx->mqtt_ctx.connected) {
 		return 0;
 	}
 

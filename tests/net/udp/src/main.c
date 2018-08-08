@@ -530,7 +530,7 @@ void test_udp(void)
 	bool st;
 
 	struct sockaddr_in6 any_addr6;
-	const struct in6_addr in6addr_any = IN6ADDR_ANY_INIT;
+	const struct in6_addr in6_addr_any = IN6ADDR_ANY_INIT;
 
 	struct sockaddr_in6 my_addr6;
 	struct in6_addr in6addr_my = { { { 0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0,
@@ -549,7 +549,7 @@ void test_udp(void)
 	struct sockaddr_in peer_addr4;
 	struct in_addr in4addr_peer = { { { 192, 0, 2, 9 } } };
 
-	net_ipaddr_copy(&any_addr6.sin6_addr, &in6addr_any);
+	net_ipaddr_copy(&any_addr6.sin6_addr, &in6_addr_any);
 	any_addr6.sin6_family = AF_INET6;
 
 	net_ipaddr_copy(&my_addr6.sin6_addr, &in6addr_my);

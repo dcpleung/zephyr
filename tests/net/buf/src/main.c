@@ -266,10 +266,10 @@ static void net_buf_test_4(void)
 	removed = 0;
 
 	while (buf->frags) {
-		struct net_buf *frag = buf->frags;
+		struct net_buf *fragment = buf->frags;
 
-		net_buf_frag_del(buf, frag);
-		net_buf_unref(frag);
+		net_buf_frag_del(buf, fragment);
+		net_buf_unref(fragment);
 		removed++;
 	}
 

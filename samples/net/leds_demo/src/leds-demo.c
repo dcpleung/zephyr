@@ -460,7 +460,7 @@ static struct coap_resource resources[] = {
 	{ },
 };
 
-static void udp_receive(struct net_context *context,
+static void udp_receive(struct net_context *ctx,
 			struct net_pkt *pkt,
 			int status,
 			void *user_data)

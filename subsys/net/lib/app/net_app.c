@@ -2062,7 +2062,7 @@ reset:
 			struct sockaddr dst = { 0 };
 			struct net_context *net_ctx;
 			struct net_pkt *pkt;
-			int len = ret;
+			int len2 = ret;
 			int hdr_len = 0;
 
 			dst.sa_family = AF_UNSPEC;
@@ -2108,7 +2108,7 @@ reset:
 				ctx->tls.mbedtls.ssl_ctx.hdr = NULL;
 			}
 
-			ret = net_pkt_append_all(pkt, len,
+			ret = net_pkt_append_all(pkt, len2,
 						 ctx->tls.request_buf,
 						 BUF_ALLOC_TIMEOUT);
 			if (!ret) {
@@ -2118,7 +2118,7 @@ reset:
 				goto close;
 			}
 
-			net_pkt_set_appdatalen(pkt, len);
+			net_pkt_set_appdatalen(pkt, len2);
 
 			if (hdr_len) {
 				struct net_buf *frag;

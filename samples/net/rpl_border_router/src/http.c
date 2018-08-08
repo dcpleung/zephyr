@@ -277,23 +277,23 @@ static int http_basic_auth(struct http_ctx *ctx,
 			    sizeof(HTTP_AUTH_PASSWORD)];
 		size_t olen, ilen, alen;
 		char *end, *colon;
-		int ret;
+		int ret2;
 
 		memset(output, 0, sizeof(output));
 
 		end = strstr(ptr + 2, HTTP_CRLF);
 		if (!end) {
-			ret = http_response_401(ctx, dst);
+			ret2 = http_response_401(ctx, dst);
 			goto close;
 		}
 
 		alen = sizeof(auth_str) - 1;
 		ilen = end - (ptr + alen);
 
-		ret = mbedtls_base64_decode(output, sizeof(output) - 1,
+		ret2 = mbedtls_base64_decode(output, sizeof(output) - 1,
 					    &olen, ptr + alen, ilen);
-		if (ret) {
-			ret = http_response_401(ctx, dst);
+		if (ret2) {
+			ret2 = http_response_401(ctx, dst);
 			goto close;
 		}
 
@@ -311,11 +311,11 @@ static int http_basic_auth(struct http_ctx *ctx,
 				return 0;
 			}
 
-			ret = http_serve_index_html(ctx, dst);
+			ret2 = http_serve_index_html(ctx, dst);
 			goto close;
 		}
 
-		ret = http_response_401(ctx, dst);
+		ret2 = http_response_401(ctx, dst);
 		goto close;
 	}
 
