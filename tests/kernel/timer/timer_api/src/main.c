@@ -19,8 +19,8 @@ struct timer_data {
 #define WITHIN_ERROR(var, target, epsilon)       \
 		(((var) >= (target)) && ((var) <= (target) + (epsilon)))
 
-static void duration_expire(struct k_timer *timer);
-static void duration_stop(struct k_timer *timer);
+static void duration_expire(struct k_timer *ptimer);
+static void duration_stop(struct k_timer *ptimer);
 
 /** TESTPOINT: init timer via K_TIMER_DEFINE */
 K_TIMER_DEFINE(ktimer, duration_expire, duration_stop);
@@ -42,42 +42,43 @@ static void init_timer_data(void)
 }
 
 /* entry routines */
-static void duration_expire(struct k_timer *timer)
+static void duration_expire(struct k_timer *ptimer)
 {
 	/** TESTPOINT: expire function */
 	tdata.expire_cnt++;
 	if (tdata.expire_cnt == 1) {
 		TIMER_ASSERT(k_uptime_delta(&tdata.timestamp) >= DURATION,
-			     timer);
+			     ptimer);
 	} else {
-		TIMER_ASSERT(k_uptime_delta(&tdata.timestamp) >= PERIOD, timer);
+		TIMER_ASSERT(k_uptime_delta(&tdata.timestamp) >= PERIOD,
+			     ptimer);
 	}
 
 	tdata.timestamp = k_uptime_get();
 	if (tdata.expire_cnt >= EXPIRE_TIMES) {
-		k_timer_stop(timer);
+		k_timer_stop(ptimer);
 	}
 }
 
-static void duration_stop(struct k_timer *timer)
+static void duration_stop(struct k_timer *ptimer)
 {
 	tdata.stop_cnt++;
 }
 
-static void period0_expire(struct k_timer *timer)
+static void period0_expire(struct k_timer *ptimer)
 {
 	tdata.expire_cnt++;
 }
 
-static void status_expire(struct k_timer *timer)
+static void status_expire(struct k_timer *ptimer)
 {
 	/** TESTPOINT: status get upon timer expired */
-	TIMER_ASSERT(k_timer_status_get(timer) == 1, timer);
+	TIMER_ASSERT(k_timer_status_get(ptimer) == 1, ptimer);
 	/** TESTPOINT: remaining get upon timer expired */
-	TIMER_ASSERT(k_timer_remaining_get(timer) >= PERIOD, timer);
+	TIMER_ASSERT(k_timer_remaining_get(ptimer) >= PERIOD, ptimer);
 
 	if (tdata.expire_cnt >= EXPIRE_TIMES) {
-		k_timer_stop(timer);
+		k_timer_stop(ptimer);
 	}
 }
 
@@ -86,10 +87,10 @@ static void busy_wait_ms(s32_t ms)
 	k_busy_wait(ms*1000);
 }
 
-static void status_stop(struct k_timer *timer)
+static void status_stop(struct k_timer *ptimer)
 {
 	/** TESTPOINT: remaining get upon timer stopped */
-	TIMER_ASSERT(k_timer_remaining_get(timer) == 0, timer);
+	TIMER_ASSERT(k_timer_remaining_get(ptimer) == 0, ptimer);
 }
 
 /**
@@ -388,7 +389,7 @@ void test_timer_k_define(void)
 	k_timer_stop(&ktimer);
 }
 
-static void user_data_timer_handler(struct k_timer *timer);
+static void user_data_timer_handler(struct k_timer *ptimer);
 
 K_TIMER_DEFINE(timer0, user_data_timer_handler, NULL);
 K_TIMER_DEFINE(timer1, user_data_timer_handler, NULL);
@@ -404,19 +405,19 @@ static const intptr_t user_data[5] = { 0x1337, 0xbabe, 0xd00d, 0xdeaf, 0xfade };
 
 static int user_data_correct[5] = { 0, 0, 0, 0, 0 };
 
-static void user_data_timer_handler(struct k_timer *timer)
+static void user_data_timer_handler(struct k_timer *ptimer)
 {
-	int timer_num = timer == user_data_timer[0] ? 0 :
-			timer == user_data_timer[1] ? 1 :
-			timer == user_data_timer[2] ? 2 :
-			timer == user_data_timer[3] ? 3 :
-			timer == user_data_timer[4] ? 4 : -1;
+	int timer_num = ptimer == user_data_timer[0] ? 0 :
+			ptimer == user_data_timer[1] ? 1 :
+			ptimer == user_data_timer[2] ? 2 :
+			ptimer == user_data_timer[3] ? 3 :
+			ptimer == user_data_timer[4] ? 4 : -1;
 
 	if (timer_num == -1) {
 		return;
 	}
 
-	intptr_t data_retrieved = (intptr_t)k_timer_user_data_get(timer);
+	intptr_t data_retrieved = (intptr_t)k_timer_user_data_get(ptimer);
 	user_data_correct[timer_num] = user_data[timer_num] == data_retrieved;
 }
 

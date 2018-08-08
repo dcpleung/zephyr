@@ -112,13 +112,13 @@ void test_stack_thread2thread(void)
  */
 void test_stack_user_thread2thread(void)
 {
-	struct k_stack *stack = k_object_alloc(K_OBJ_STACK);
+	struct k_stack *pstack = k_object_alloc(K_OBJ_STACK);
 
-	zassert_not_null(stack, "couldn't allocate stack object");
-	zassert_false(k_stack_alloc_init(stack, STACK_LEN),
+	zassert_not_null(pstack, "couldn't allocate stack object");
+	zassert_false(k_stack_alloc_init(pstack, STACK_LEN),
 		      "stack init failed");
 
-	tstack_thread_thread(stack);
+	tstack_thread_thread(pstack);
 }
 #endif
 

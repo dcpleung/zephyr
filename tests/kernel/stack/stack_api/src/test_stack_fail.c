@@ -13,14 +13,14 @@
 static u32_t data[STACK_LEN];
 extern struct k_stack stack;
 
-static void stack_pop_fail(struct k_stack *stack)
+static void stack_pop_fail(struct k_stack *pstack)
 {
 	u32_t rx_data;
 
 	/**TESTPOINT: stack pop returns -EBUSY*/
-	zassert_equal(k_stack_pop(stack, &rx_data, K_NO_WAIT), -EBUSY, NULL);
+	zassert_equal(k_stack_pop(pstack, &rx_data, K_NO_WAIT), -EBUSY, NULL);
 	/**TESTPOINT: stack pop returns -EAGAIN*/
-	zassert_equal(k_stack_pop(stack, &rx_data, TIMEOUT), -EAGAIN, NULL);
+	zassert_equal(k_stack_pop(pstack, &rx_data, TIMEOUT), -EAGAIN, NULL);
 }
 
 /**

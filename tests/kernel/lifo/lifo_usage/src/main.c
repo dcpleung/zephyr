@@ -129,16 +129,16 @@ static int test_multiple_threads_pending(struct timeout_order_data *test_data,
 	}
 
 	for (ii = 0; ii < test_data_size; ii++) {
-		struct timeout_order_data *data =
+		struct timeout_order_data *pdata =
 			k_lifo_get(&timeout_order_lifo, K_FOREVER);
 
-		if (data->timeout_order == ii) {
+		if (pdata->timeout_order == ii) {
 			TC_PRINT(" thread (q order: %d, t/o: %d, lifo %p)\n",
-				data->q_order, data->timeout, data->klifo);
+				 pdata->q_order, pdata->timeout, pdata->klifo);
 		} else {
-			zassert_equal(data->timeout_order, ii, " *** thread %d "
+			zassert_equal(pdata->timeout_order, ii, " *** thread %d "
 				      "woke up, expected %d\n",
-				      data->timeout_order, ii);
+				      pdata->timeout_order, ii);
 			return TC_FAIL;
 		}
 	}
@@ -215,15 +215,15 @@ static void test_lifo_nowait(void)
 	/* put some data on lifo */
 	k_lifo_put(&lifo, (void *)&data[0]);
 
-	k_tid_t tid = k_thread_create(&tdata, tstack, STACK_SIZE,
-				      thread_entry_nowait, &lifo, NULL, NULL,
-				      K_PRIO_PREEMPT(0), 0, 0);
+	k_tid_t tid2 = k_thread_create(&tdata, tstack, STACK_SIZE,
+				       thread_entry_nowait, &lifo, NULL, NULL,
+				       K_PRIO_PREEMPT(0), 0, 0);
 
 	k_lifo_put(&lifo, (void *)&data[1]);
 
 	/* Allow another thread to read lifo */
 	k_sem_take(&start_sema, K_FOREVER);
-	k_thread_abort(tid);
+	k_thread_abort(tid2);
 }
 
 /**
@@ -237,9 +237,9 @@ static void test_lifo_wait(void)
 	k_lifo_init(&plifo);
 	k_sem_init(&wait_sema, 0, 1);
 
-	k_tid_t tid = k_thread_create(&tdata1, tstack1, STACK_SIZE,
-				      thread_entry_wait, &plifo, NULL, NULL,
-				      K_PRIO_PREEMPT(0), 0, 0);
+	k_tid_t tid2 = k_thread_create(&tdata1, tstack1, STACK_SIZE,
+				       thread_entry_wait, &plifo, NULL, NULL,
+				       K_PRIO_PREEMPT(0), 0, 0);
 
 	ret = k_lifo_get(&plifo, K_FOREVER);
 
@@ -251,7 +251,7 @@ static void test_lifo_wait(void)
 
 	zassert_equal(ret, (void *)&data[1], NULL);
 
-	k_thread_abort(tid);
+	k_thread_abort(tid2);
 }
 
 /**

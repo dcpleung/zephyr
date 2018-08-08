@@ -70,9 +70,9 @@ static void teardown_threads(void)
 	k_thread_priority_set(k_current_get(), old_prio);
 }
 
-static void timer_handler(struct k_timer *timer)
+static void timer_handler(struct k_timer *ptimer)
 {
-	ARG_UNUSED(timer);
+	ARG_UNUSED(ptimer);
 	k_sem_give(&timer_sema);
 }
 
