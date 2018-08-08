@@ -136,7 +136,7 @@ static bool should_bail(const struct flash_pages_info *info,
 static int flash_area_layout(int idx, u32_t *cnt, void *ret,
 flash_page_cb cb, struct layout_data *cb_data)
 {
-	struct device *flash_dev;
+	struct device *p_flash_dev;
 
 	cb_data->area_idx = idx;
 
@@ -156,9 +156,9 @@ flash_page_cb cb, struct layout_data *cb_data)
 	cb_data->ret_len = *cnt;
 	cb_data->status = 0;
 
-	flash_dev = get_flash_dev_from_id(fa->fa_device_id);
+	p_flash_dev = get_flash_dev_from_id(fa->fa_device_id);
 
-	flash_page_foreach(flash_dev, cb, cb_data);
+	flash_page_foreach(p_flash_dev, cb, cb_data);
 
 	if (cb_data->status == 0) {
 		*cnt = cb_data->ret_idx;
@@ -209,48 +209,48 @@ int flash_area_read(const struct flash_area *fa, off_t off, void *dst,
 int flash_area_write(const struct flash_area *fa, off_t off, const void *src,
 		     size_t len)
 {
-	struct device *flash_dev;
+	struct device *p_flash_dev;
 	int rc;
 
 	if (!is_in_flash_area_bounds(fa, off, len)) {
 		return -1;
 	}
 
-	flash_dev = get_flash_dev_from_id(fa->fa_device_id);
+	p_flash_dev = get_flash_dev_from_id(fa->fa_device_id);
 
-	rc = flash_write_protection_set(flash_dev, false);
+	rc = flash_write_protection_set(p_flash_dev, false);
 	if (rc) {
 		return rc;
 	}
 
-	rc = flash_write(flash_dev, fa->fa_off + off, (void *)src, len);
+	rc = flash_write(p_flash_dev, fa->fa_off + off, (void *)src, len);
 
 	/* Ignore errors here - this does not affect write operation */
-	(void) flash_write_protection_set(flash_dev, true);
+	(void) flash_write_protection_set(p_flash_dev, true);
 
 	return rc;
 }
 
 int flash_area_erase(const struct flash_area *fa, off_t off, size_t len)
 {
-	struct device *flash_dev;
+	struct device *p_flash_dev;
 	int rc;
 
 	if (!is_in_flash_area_bounds(fa, off, len)) {
 		return -1;
 	}
 
-	flash_dev = get_flash_dev_from_id(fa->fa_device_id);
+	p_flash_dev = get_flash_dev_from_id(fa->fa_device_id);
 
-	rc = flash_write_protection_set(flash_dev, false);
+	rc = flash_write_protection_set(p_flash_dev, false);
 	if (rc) {
 		return rc;
 	}
 
-	rc = flash_erase(flash_dev, fa->fa_off + off, len);
+	rc = flash_erase(p_flash_dev, fa->fa_off + off, len);
 
 	/* Ignore errors here - this does not affect write operation */
-	(void) flash_write_protection_set(flash_dev, true);
+	(void) flash_write_protection_set(p_flash_dev, true);
 
 	return rc;
 }
