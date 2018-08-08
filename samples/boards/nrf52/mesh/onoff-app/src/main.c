@@ -317,12 +317,12 @@ static void gen_onoff_get(struct bt_mesh_model *model,
 			  struct net_buf_simple *buf)
 {
 	NET_BUF_SIMPLE_DEFINE(msg, 2 + 1 + 4);
-	struct onoff_state *onoff_state = model->user_data;
+	struct onoff_state *p_onoff_state = model->user_data;
 
 	SYS_LOG_INF("addr 0x%04x onoff 0x%02x",
-		    bt_mesh_model_elem(model)->addr, onoff_state->current);
+		    bt_mesh_model_elem(model)->addr, p_onoff_state->current);
 	bt_mesh_model_msg_init(&msg, BT_MESH_MODEL_OP_GEN_ONOFF_STATUS);
-	net_buf_simple_add_u8(&msg, onoff_state->current);
+	net_buf_simple_add_u8(&msg, p_onoff_state->current);
 
 	if (bt_mesh_model_send(model, ctx, &msg, NULL, NULL)) {
 		SYS_LOG_ERR("Unable to send On Off Status response");
@@ -334,17 +334,17 @@ static void gen_onoff_set_unack(struct bt_mesh_model *model,
 				struct net_buf_simple *buf)
 {
 	struct net_buf_simple *msg = model->pub->msg;
-	struct onoff_state *onoff_state = model->user_data;
+	struct onoff_state *p_onoff_state = model->user_data;
 	int err;
 
-	onoff_state->current = net_buf_simple_pull_u8(buf);
+	p_onoff_state->current = net_buf_simple_pull_u8(buf);
 	SYS_LOG_INF("addr 0x%02x state 0x%02x",
-		    bt_mesh_model_elem(model)->addr, onoff_state->current);
+		    bt_mesh_model_elem(model)->addr, p_onoff_state->current);
 
 	/* Pin set low turns on LED's on the nrf52840-pca10056 board */
-	gpio_pin_write(onoff_state->led_device,
-		       onoff_state->led_gpio_pin,
-		       onoff_state->current ? 0 : 1);
+	gpio_pin_write(p_onoff_state->led_device,
+		       p_onoff_state->led_gpio_pin,
+		       p_onoff_state->current ? 0 : 1);
 
 	/*
 	 * If a server has a publish address, it is required to
@@ -355,15 +355,15 @@ static void gen_onoff_set_unack(struct bt_mesh_model *model,
 	 * Only publish if there is an assigned address
 	 */
 
-	if (onoff_state->previous != onoff_state->current &&
+	if (p_onoff_state->previous != p_onoff_state->current &&
 	    model->pub->addr != BT_MESH_ADDR_UNASSIGNED) {
 		SYS_LOG_INF("publish last 0x%02x cur 0x%02x",
-			    onoff_state->previous,
-			    onoff_state->current);
-		onoff_state->previous = onoff_state->current;
+			    p_onoff_state->previous,
+			    p_onoff_state->current);
+		p_onoff_state->previous = p_onoff_state->current;
 		bt_mesh_model_msg_init(msg,
 				       BT_MESH_MODEL_OP_GEN_ONOFF_STATUS);
-		net_buf_simple_add_u8(msg, onoff_state->current);
+		net_buf_simple_add_u8(msg, p_onoff_state->current);
 		err = bt_mesh_model_publish(model);
 		if (err) {
 			SYS_LOG_ERR("bt_mesh_model_publish err %d", err);
@@ -494,9 +494,9 @@ static void button_pressed_worker(struct k_work *work)
 {
 	struct bt_mesh_model *mod_cli, *mod_srv;
 	struct bt_mesh_model_pub *pub_cli, *pub_srv;
-	struct sw *sw = CONTAINER_OF(work, struct sw, button_work);
+	struct sw *p_sw = CONTAINER_OF(work, struct sw, button_work);
 	int err;
-	u8_t sw_idx = sw->sw_num;
+	u8_t sw_idx = p_sw->sw_num;
 
 	mod_cli = mod_cli_sw[sw_idx];
 	pub_cli = mod_cli->pub;
@@ -524,7 +524,7 @@ static void button_pressed_worker(struct k_work *work)
 		 * for the led server
 		 */
 
-		net_buf_simple_add_u8(&msg, sw->onoff_state);
+		net_buf_simple_add_u8(&msg, p_sw->onoff_state);
 		gen_onoff_set_unack(mod_srv, &ctx, &msg);
 		return;
 	}
@@ -534,10 +534,10 @@ static void button_pressed_worker(struct k_work *work)
 	}
 
 	SYS_LOG_INF("publish to 0x%04x onoff 0x%04x sw_idx 0x%04x",
-		    pub_cli->addr, sw->onoff_state, sw_idx);
+		    pub_cli->addr, p_sw->onoff_state, sw_idx);
 	bt_mesh_model_msg_init(pub_cli->msg,
 			       BT_MESH_MODEL_OP_GEN_ONOFF_SET);
-	net_buf_simple_add_u8(pub_cli->msg, sw->onoff_state);
+	net_buf_simple_add_u8(pub_cli->msg, p_sw->onoff_state);
 	net_buf_simple_add_u8(pub_cli->msg, trans_id++);
 	err = bt_mesh_model_publish(mod_cli);
 	if (err) {
