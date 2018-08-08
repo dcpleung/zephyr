@@ -301,7 +301,7 @@ static int spi_rx_every_4(struct device *dev, struct spi_config *spi_conf)
 }
 
 static struct k_poll_signal async_sig = K_POLL_SIGNAL_INITIALIZER(async_sig);
-static struct k_poll_event async_evt =
+static struct k_poll_event g_async_evt =
 	K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_SIGNAL,
 				 K_POLL_MODE_NOTIFY_ONLY,
 				 &async_sig);
@@ -427,7 +427,7 @@ void testing_spi(void)
 
 	async_thread_id = k_thread_create(&async_thread, spi_async_stack, 256,
 					  (k_thread_entry_t)spi_async_call_cb,
-					  &async_evt, &caller, NULL,
+					  &g_async_evt, &caller, NULL,
 					  K_PRIO_COOP(7), 0, 0);
 
 	if (spi_complete_loop(spi_slow, &spi_cfg_slow) ||
