@@ -3825,14 +3825,14 @@ static const u8_t M[] = {
 	0xad, 0x2b, 0x41, 0x7b, 0xe6, 0x6c, 0x37, 0x10
 };
 
-static int aes_test(const char *prefix, const u8_t *key, const u8_t *m,
+static int aes_test(const char *prefix, const u8_t *pkey, const u8_t *m,
 		    u16_t len, const u8_t *mac)
 {
 	u8_t out[16];
 
 	BT_DBG("%s: AES CMAC of message with len %u", prefix, len);
 
-	bt_smp_aes_cmac(key, m, len, out);
+	bt_smp_aes_cmac(pkey, m, len, out);
 	if (!memcmp(out, mac, 16)) {
 		BT_DBG("%s: Success", prefix);
 	} else {
@@ -3886,7 +3886,7 @@ static int smp_aes_cmac_test(void)
 	return 0;
 }
 
-static int sign_test(const char *prefix, const u8_t *key, const u8_t *m,
+static int sign_test(const char *prefix, const u8_t *pkey, const u8_t *m,
 		     u16_t len, const u8_t *sig)
 {
 	u8_t msg[len + sizeof(u32_t) + 8];
@@ -3902,7 +3902,7 @@ static int sign_test(const char *prefix, const u8_t *key, const u8_t *m,
 
 	memcpy(orig, msg, sizeof(msg));
 
-	err = smp_sign_buf(key, msg, len);
+	err = smp_sign_buf(pkey, msg, len);
 	if (err) {
 		return err;
 	}

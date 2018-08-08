@@ -11317,10 +11317,10 @@ void ll_rx_dequeue(void)
 		}
 
 		if (conn) {
-			struct radio_pdu_node_rx *node_rx = (void *)
+			struct radio_pdu_node_rx *pd_node_rx = (void *)
 				&conn->llcp_terminate.radio_pdu_node_rx;
 
-			mem_release(node_rx->hdr.onion.link,
+			mem_release(pd_node_rx->hdr.onion.link,
 				    &_radio.link_rx_free);
 			mem_release(conn, &_radio.conn_free);
 		}

@@ -1213,11 +1213,11 @@ static struct coap_resource resources[] = {
 };
 
 static struct coap_resource *find_resouce_by_observer(
-	struct coap_resource *resources, struct coap_observer *o)
+	struct coap_resource *res, struct coap_observer *o)
 {
 	struct coap_resource *r;
 
-	for (r = resources; r && r->path; r++) {
+	for (r = res; r && r->path; r++) {
 		sys_snode_t *node;
 
 		SYS_SLIST_FOR_EACH_NODE(&r->observers, node) {
@@ -1230,7 +1230,7 @@ static struct coap_resource *find_resouce_by_observer(
 	return NULL;
 }
 
-static void udp_receive(struct net_context *context,
+static void udp_receive(struct net_context *ctx,
 			struct net_pkt *pkt,
 			int status,
 			void *user_data)
@@ -1257,7 +1257,7 @@ static void udp_receive(struct net_context *context,
 	}
 
 	if (coap_header_get_type(&request) == COAP_TYPE_RESET) {
-		struct coap_resource *r;
+		struct coap_resource *cr;
 		struct coap_observer *o;
 
 		o = coap_find_observer_by_addr(observers, NUM_OBSERVERS,
@@ -1267,13 +1267,13 @@ static void udp_receive(struct net_context *context,
 			goto not_found;
 		}
 
-		r = find_resouce_by_observer(resources, o);
-		if (!r) {
+		cr = find_resouce_by_observer(resources, o);
+		if (!cr) {
 			NET_ERR("Observer found but Resource not found\n");
 			goto not_found;
 		}
 
-		coap_remove_observer(r, o);
+		coap_remove_observer(cr, o);
 	}
 
 	net_pkt_unref(pkt);

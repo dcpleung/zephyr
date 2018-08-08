@@ -215,11 +215,11 @@ void show_faults(u8_t test_id, u16_t cid, u8_t *faults, size_t fault_count)
 	}
 }
 
-static void health_current_status(struct bt_mesh_health_cli *cli, u16_t addr,
+static void health_current_status(struct bt_mesh_health_cli *cli, u16_t f_addr,
 				  u8_t test_id, u16_t cid, u8_t *faults,
 				  size_t fault_count)
 {
-	SYS_LOG_DBG("Health Current Status from 0x%04x", addr);
+	SYS_LOG_DBG("Health Current Status from 0x%04x", f_addr);
 	show_faults(test_id, cid, faults, fault_count);
 }
 
@@ -341,13 +341,13 @@ static int input(bt_mesh_input_action_t action, u8_t size)
 	return 0;
 }
 
-static void prov_complete(u16_t net_idx, u16_t addr)
+static void prov_complete(u16_t net_idx, u16_t iaddr)
 {
-	SYS_LOG_DBG("net_idx 0x%04x addr 0x%04x", net_idx, addr);
+	SYS_LOG_DBG("net_idx 0x%04x addr 0x%04x", net_idx, iaddr);
 
 	net.net_idx = net_idx,
-	net.local = addr;
-	net.dst = addr;
+	net.local = iaddr;
+	net.dst = iaddr;
 
 	tester_send(BTP_SERVICE_ID_MESH, MESH_EV_PROVISIONED, CONTROLLER_INDEX,
 		    NULL, 0);
@@ -844,18 +844,18 @@ void net_recv_ev(u8_t ttl, u8_t ctl, u16_t src, u16_t dst, const void *payload,
 		    buf.data, buf.len);
 }
 
-static void model_bound_cb(u16_t addr, struct bt_mesh_model *model,
+static void model_bound_cb(u16_t raddr, struct bt_mesh_model *model,
 			   u16_t key_idx)
 {
 	int i;
 
 	SYS_LOG_DBG("remote addr 0x%04x key_idx 0x%04x model %p",
-		    addr, key_idx, model);
+		    raddr, key_idx, model);
 
 	for (i = 0; i < ARRAY_SIZE(model_bound); i++) {
 		if (!model_bound[i].model) {
 			model_bound[i].model = model;
-			model_bound[i].addr = addr;
+			model_bound[i].addr = raddr;
 			model_bound[i].appkey_idx = key_idx;
 
 			return;
@@ -865,13 +865,13 @@ static void model_bound_cb(u16_t addr, struct bt_mesh_model *model,
 	SYS_LOG_ERR("model_bound is full");
 }
 
-static void model_unbound_cb(u16_t addr, struct bt_mesh_model *model,
+static void model_unbound_cb(u16_t raddr, struct bt_mesh_model *model,
 			     u16_t key_idx)
 {
 	int i;
 
 	SYS_LOG_DBG("remote addr 0x%04x key_idx 0x%04x model %p",
-		    addr, key_idx, model);
+		    raddr, key_idx, model);
 
 	for (i = 0; i < ARRAY_SIZE(model_bound); i++) {
 		if (model_bound[i].model == model) {

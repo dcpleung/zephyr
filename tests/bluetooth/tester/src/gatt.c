@@ -1755,20 +1755,20 @@ static void get_attrs(u8_t *data, u16_t len)
 	struct net_buf_simple *buf = NET_BUF_SIMPLE(BTP_DATA_MAX_SIZE);
 	struct get_attrs_foreach_data foreach;
 	u16_t start_handle, end_handle;
-	union uuid uuid;
+	union uuid uuid2;
 
 	start_handle = sys_le16_to_cpu(cmd->start_handle);
 	end_handle = sys_le16_to_cpu(cmd->end_handle);
 
 	if (cmd->type_length) {
-		if (btp2bt_uuid(cmd->type, cmd->type_length, &uuid.uuid)) {
+		if (btp2bt_uuid(cmd->type, cmd->type_length, &uuid2.uuid)) {
 			goto fail;
 		}
 
 		SYS_LOG_DBG("start 0x%04x end 0x%04x, uuid %s", start_handle,
-			    end_handle, bt_uuid_str(&uuid.uuid));
+			    end_handle, bt_uuid_str(&uuid2.uuid));
 
-		foreach.uuid = &uuid.uuid;
+		foreach.uuid = &uuid2.uuid;
 	} else {
 		SYS_LOG_DBG("start 0x%04x end 0x%04x", start_handle, end_handle);
 

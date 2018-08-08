@@ -277,25 +277,25 @@ static void stop_advertising(const u8_t *data, u16_t len)
 		    (u8_t *) &rp, sizeof(rp));
 }
 
-static u8_t get_ad_flags(struct net_buf_simple *ad)
+static u8_t get_ad_flags(struct net_buf_simple *p_ad)
 {
 	u8_t len, i;
 
 	/* Parse advertisement to get flags */
-	for (i = 0; i < ad->len; i += len - 1) {
-		len = ad->data[i++];
+	for (i = 0; i < p_ad->len; i += len - 1) {
+		len = p_ad->data[i++];
 		if (!len) {
 			break;
 		}
 
 		/* Check if field length is correct */
-		if (len > (ad->len - i) || (ad->len - i) < 1) {
+		if (len > (p_ad->len - i) || (p_ad->len - i) < 1) {
 			break;
 		}
 
-		switch (ad->data[i++]) {
+		switch (p_ad->data[i++]) {
 		case BT_DATA_FLAGS:
-			return ad->data[i];
+			return p_ad->data[i];
 		default:
 			break;
 		}
@@ -308,7 +308,7 @@ static u8_t discovery_flags;
 static struct net_buf_simple *adv_buf = NET_BUF_SIMPLE(ADV_BUF_LEN);
 
 static void store_adv(const bt_addr_le_t *addr, s8_t rssi,
-		      struct net_buf_simple *ad)
+		      struct net_buf_simple *p_ad)
 {
 	struct gap_device_found_ev *ev;
 
@@ -321,17 +321,17 @@ static void store_adv(const bt_addr_le_t *addr, s8_t rssi,
 	ev->address_type = addr->type;
 	ev->rssi = rssi;
 	ev->flags = GAP_DEVICE_FOUND_FLAG_AD | GAP_DEVICE_FOUND_FLAG_RSSI;
-	ev->eir_data_len = ad->len;
-	memcpy(net_buf_simple_add(adv_buf, ad->len), ad->data, ad->len);
+	ev->eir_data_len = p_ad->len;
+	memcpy(net_buf_simple_add(adv_buf, p_ad->len), p_ad->data, p_ad->len);
 }
 
 static void device_found(const bt_addr_le_t *addr, s8_t rssi, u8_t evtype,
-			 struct net_buf_simple *ad)
+			 struct net_buf_simple *p_ad)
 {
 	/* if General/Limited Discovery - parse Advertising data to get flags */
 	if (!(discovery_flags & GAP_DISCOVERY_FLAG_LE_OBSERVE) &&
 	    (evtype != BT_LE_ADV_SCAN_RSP)) {
-		u8_t flags = get_ad_flags(ad);
+		u8_t flags = get_ad_flags(p_ad);
 
 		/* ignore non-discoverable devices */
 		if (!(flags & BT_LE_AD_DISCOV_MASK)) {
@@ -372,10 +372,10 @@ static void device_found(const bt_addr_le_t *addr, s8_t rssi, u8_t evtype,
 			goto done;
 		}
 
-		ev->eir_data_len += ad->len;
+		ev->eir_data_len += p_ad->len;
 		ev->flags |= GAP_DEVICE_FOUND_FLAG_SD;
 
-		memcpy(net_buf_simple_add(adv_buf, ad->len), ad->data, ad->len);
+		memcpy(net_buf_simple_add(adv_buf, p_ad->len), p_ad->data, p_ad->len);
 
 		goto done;
 	}
@@ -389,7 +389,7 @@ static void device_found(const bt_addr_le_t *addr, s8_t rssi, u8_t evtype,
 			    CONTROLLER_INDEX, adv_buf->data, adv_buf->len);
 	}
 
-	store_adv(addr, rssi, ad);
+	store_adv(addr, rssi, p_ad);
 
 	/* if Active Scan and scannable event - wait for Scan Response */
 	if ((discovery_flags & GAP_DISCOVERY_FLAG_LE_ACTIVE_SCAN) &&

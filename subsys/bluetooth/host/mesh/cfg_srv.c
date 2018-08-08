@@ -853,10 +853,10 @@ static void gatt_proxy_set(struct bt_mesh_model *model,
 		 * to 0x00 and shall not be changed."
 		 */
 		for (i = 0; i < ARRAY_SIZE(bt_mesh.sub); i++) {
-			struct bt_mesh_subnet *sub = &bt_mesh.sub[i];
+			struct bt_mesh_subnet *subnet = &bt_mesh.sub[i];
 
-			if (sub->net_idx != BT_MESH_KEY_UNUSED) {
-				bt_mesh_proxy_identity_stop(sub);
+			if (subnet->net_idx != BT_MESH_KEY_UNUSED) {
+				bt_mesh_proxy_identity_stop(subnet);
 			}
 		}
 

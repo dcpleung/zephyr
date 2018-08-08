@@ -249,9 +249,9 @@ void bt_mesh_adv_send(struct net_buf *buf, const struct bt_mesh_send_cb *cb,
 }
 
 static void bt_mesh_scan_cb(const bt_addr_le_t *addr, s8_t rssi,
-			    u8_t adv_type, struct net_buf_simple *buf)
+			    u8_t bt_adv_type, struct net_buf_simple *buf)
 {
-	if (adv_type != BT_LE_ADV_NONCONN_IND) {
+	if (bt_adv_type != BT_LE_ADV_NONCONN_IND) {
 		return;
 	}
 

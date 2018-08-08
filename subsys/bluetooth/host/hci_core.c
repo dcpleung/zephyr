@@ -2201,11 +2201,11 @@ static void remote_name_request_complete(struct net_buf *buf)
 check_names:
 	/* if still waiting for names */
 	for (i = 0; i < discovery_results_count; i++) {
-		struct discovery_priv *priv;
+		struct discovery_priv *dpriv;
 
-		priv = (struct discovery_priv *)&discovery_results[i]._priv;
+		dpriv = (struct discovery_priv *)&discovery_results[i]._priv;
 
-		if (priv->resolving) {
+		if (dpriv->resolving) {
 			return;
 		}
 	}

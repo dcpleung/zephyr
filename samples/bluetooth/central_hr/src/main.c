@@ -140,13 +140,13 @@ static bool eir_found(struct bt_data *data, void *user_data)
 		}
 
 		for (i = 0; i < data->data_len; i += sizeof(u16_t)) {
-			struct bt_uuid *uuid;
+			struct bt_uuid *uuid_u16;
 			u16_t u16;
 			int err;
 
 			memcpy(&u16, &data->data[i], sizeof(u16));
-			uuid = BT_UUID_DECLARE_16(sys_le16_to_cpu(u16));
-			if (bt_uuid_cmp(uuid, BT_UUID_HRS)) {
+			uuid_u16 = BT_UUID_DECLARE_16(sys_le16_to_cpu(u16));
+			if (bt_uuid_cmp(uuid_u16, BT_UUID_HRS)) {
 				continue;
 			}
 

@@ -63,7 +63,7 @@ static int dump_payload(const struct coap_packet *response)
 	return 0;
 }
 
-static void udp_receive(struct net_context *context,
+static void udp_receive(struct net_context *ctx,
 			struct net_pkt *pkt,
 			int status,
 			void *user_data)
