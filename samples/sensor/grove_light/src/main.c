@@ -9,6 +9,11 @@
 #include <misc/printk.h>
 #include <stdio.h>
 #include <sensor.h>
+#include <pinmux.h>
+
+#ifdef CONFIG_BOARD_QUARK_D2000_CRB
+#define ADC_PIN 3
+#endif
 
 #define SLEEP_TIME	1000
 
@@ -20,6 +25,17 @@ void main(void)
 		printk("device not found.  aborting test.\n");
 		return;
 	}
+
+#ifdef CONFIG_BOARD_QUARK_D2000_CRB
+	struct device *pinmux = device_get_binding(CONFIG_PINMUX_NAME);
+
+	if (pinmux_pin_set(pinmux, ADC_PIN, PINMUX_FUNC_B)) {
+		printk("Fail to set pin func, %u : %u\n",
+			  ADC_PIN, PINMUX_FUNC_B);
+		return;
+	}
+#endif
+
 	while (1) {
 		int read;
 		struct sensor_value lux;
