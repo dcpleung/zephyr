@@ -1,0 +1,26 @@
+sample:
+  description: userspace memory domain protection
+    with runtime created partitions
+  name: runtime created memory partitions
+common:
+    integration_platforms:
+      - qemu_x86
+    tags: userspace
+    harness: console
+    harness_config:
+      type: multi_line
+      regex:
+        - "P:( 0x[0-9a-f]{2}){16}"
+        - "C:( 0x[0-9a-f]{2}){16}"
+tests:
+  sample.kernel.memory_protection.mem_domain_dynamic:
+    filter: CONFIG_MMU
+    arch_exclude: x86 arm64
+  sample.kernel.memory_protection.mem_domain_dynamic.x86:
+    filter: CONFIG_MMU
+    extra_args: CONF_FILE=prj_x86.conf
+    arch_allow: x86
+  sample.kernel.memory_protection.mem_domain_dynamic.arm64:
+    filter: CONFIG_MMU
+    extra_args: CONF_FILE=prj_arm64.conf
+    arch_allow: arm64
