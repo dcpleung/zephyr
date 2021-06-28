@@ -12,22 +12,28 @@
 #include <drivers/timer/system_timer.h>
 #include <sys_clock.h>
 
+__pinned_bss
 static uint64_t curr_tick;
 
+__pinned_data
 static sys_dlist_t timeout_list = SYS_DLIST_STATIC_INIT(&timeout_list);
 
+__pinned_bss
 static struct k_spinlock timeout_lock;
 
 #define MAX_WAIT (IS_ENABLED(CONFIG_SYSTEM_CLOCK_SLOPPY_IDLE) \
 		  ? K_TICKS_FOREVER : INT_MAX)
 
 /* Cycles left to process in the currently-executing sys_clock_announce() */
+__pinned_bss
 static int announce_remaining;
 
 #if defined(CONFIG_TIMER_READS_ITS_FREQUENCY_AT_RUNTIME)
+__pinned_data
 int z_clock_hw_cycles_per_sec = CONFIG_SYS_CLOCK_HW_CYCLES_PER_SEC;
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline int z_vrfy_sys_clock_hw_cycles_per_sec_runtime_get(void)
 {
 	return z_impl_sys_clock_hw_cycles_per_sec_runtime_get();
@@ -36,6 +42,7 @@ static inline int z_vrfy_sys_clock_hw_cycles_per_sec_runtime_get(void)
 #endif /* CONFIG_USERSPACE */
 #endif /* CONFIG_TIMER_READS_ITS_FREQUENCY_AT_RUNTIME */
 
+__pinned_func
 static struct _timeout *first(void)
 {
 	sys_dnode_t *t = sys_dlist_peek_head(&timeout_list);
@@ -43,6 +50,7 @@ static struct _timeout *first(void)
 	return t == NULL ? NULL : CONTAINER_OF(t, struct _timeout, node);
 }
 
+__pinned_func
 static struct _timeout *next(struct _timeout *t)
 {
 	sys_dnode_t *n = sys_dlist_peek_next(&timeout_list, &t->node);
@@ -50,6 +58,7 @@ static struct _timeout *next(struct _timeout *t)
 	return n == NULL ? NULL : CONTAINER_OF(n, struct _timeout, node);
 }
 
+__pinned_func
 static void remove_timeout(struct _timeout *t)
 {
 	if (next(t) != NULL) {
@@ -59,11 +68,13 @@ static void remove_timeout(struct _timeout *t)
 	sys_dlist_remove(&t->node);
 }
 
+__pinned_func
 static int32_t elapsed(void)
 {
 	return announce_remaining == 0 ? sys_clock_elapsed() : 0U;
 }
 
+__pinned_func
 static int32_t next_timeout(void)
 {
 	struct _timeout *to = first();
@@ -79,6 +90,7 @@ static int32_t next_timeout(void)
 	return ret;
 }
 
+__pinned_func
 void z_add_timeout(struct _timeout *to, _timeout_func_t fn,
 		   k_timeout_t timeout)
 {
@@ -141,6 +153,7 @@ void z_add_timeout(struct _timeout *to, _timeout_func_t fn,
 	}
 }
 
+__pinned_func
 int z_abort_timeout(struct _timeout *to)
 {
 	int ret = -EINVAL;
@@ -156,6 +169,7 @@ int z_abort_timeout(struct _timeout *to)
 }
 
 /* must be locked */
+__pinned_func
 static k_ticks_t timeout_rem(const struct _timeout *timeout)
 {
 	k_ticks_t ticks = 0;
@@ -174,6 +188,7 @@ static k_ticks_t timeout_rem(const struct _timeout *timeout)
 	return ticks - elapsed();
 }
 
+__pinned_func
 k_ticks_t z_timeout_remaining(const struct _timeout *timeout)
 {
 	k_ticks_t ticks = 0;
@@ -185,6 +200,7 @@ k_ticks_t z_timeout_remaining(const struct _timeout *timeout)
 	return ticks;
 }
 
+__pinned_func
 k_ticks_t z_timeout_expires(const struct _timeout *timeout)
 {
 	k_ticks_t ticks = 0;
@@ -196,6 +212,7 @@ k_ticks_t z_timeout_expires(const struct _timeout *timeout)
 	return ticks;
 }
 
+__pinned_func
 int32_t z_get_next_timeout_expiry(void)
 {
 	int32_t ret = (int32_t) K_TICKS_FOREVER;
@@ -206,6 +223,7 @@ int32_t z_get_next_timeout_expiry(void)
 	return ret;
 }
 
+__pinned_func
 void z_set_timeout_expiry(int32_t ticks, bool is_idle)
 {
 	LOCKED(&timeout_lock) {
@@ -230,6 +248,7 @@ void z_set_timeout_expiry(int32_t ticks, bool is_idle)
 	}
 }
 
+__pinned_func
 void sys_clock_announce(int32_t ticks)
 {
 #ifdef CONFIG_TIMESLICING
@@ -266,6 +285,7 @@ void sys_clock_announce(int32_t ticks)
 	k_spin_unlock(&timeout_lock, key);
 }
 
+__pinned_func
 int64_t sys_clock_tick_get(void)
 {
 	uint64_t t = 0U;
@@ -276,6 +296,7 @@ int64_t sys_clock_tick_get(void)
 	return t;
 }
 
+__pinned_func
 uint32_t sys_clock_tick_get_32(void)
 {
 #ifdef CONFIG_TICKLESS_KERNEL
@@ -285,12 +306,14 @@ uint32_t sys_clock_tick_get_32(void)
 #endif
 }
 
+__pinned_func
 int64_t z_impl_k_uptime_ticks(void)
 {
 	return sys_clock_tick_get();
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline int64_t z_vrfy_k_uptime_ticks(void)
 {
 	return z_impl_k_uptime_ticks();
@@ -298,6 +321,7 @@ static inline int64_t z_vrfy_k_uptime_ticks(void)
 #include <syscalls/k_uptime_ticks_mrsh.c>
 #endif
 
+__pinned_func
 void z_impl_k_busy_wait(uint32_t usec_to_wait)
 {
 	SYS_PORT_TRACING_FUNC_ENTER(k_thread, busy_wait, usec_to_wait);
@@ -331,6 +355,7 @@ void z_impl_k_busy_wait(uint32_t usec_to_wait)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline void z_vrfy_k_busy_wait(uint32_t usec_to_wait)
 {
 	z_impl_k_busy_wait(usec_to_wait);
@@ -343,6 +368,7 @@ static inline void z_vrfy_k_busy_wait(uint32_t usec_to_wait)
  * synchronously with the user passing a new timeout value.  It should
  * not be used iteratively to adjust a timeout.
  */
+__pinned_func
 uint64_t sys_clock_timeout_end_calc(k_timeout_t timeout)
 {
 	k_ticks_t dt;

@@ -256,6 +256,7 @@ def marshall_defs(func_name, func_type, args):
     decl_arglist = ", ".join([" ".join(argrec) for argrec in args])
     mrsh = "extern %s z_vrfy_%s(%s);\n" % (func_type, func_name, decl_arglist)
 
+    mrsh += "\n__pinned_func\n"
     mrsh += "uintptr_t %s(uintptr_t arg0, uintptr_t arg1, uintptr_t arg2,\n" % mrsh_name
     if nmrsh <= 6:
         mrsh += "\t\t" + "uintptr_t arg3, uintptr_t arg4, uintptr_t arg5, void *ssf)\n"

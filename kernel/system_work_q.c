@@ -14,11 +14,13 @@
 #include <kernel.h>
 #include <init.h>
 
-static K_KERNEL_STACK_DEFINE(sys_work_q_stack,
-			     CONFIG_SYSTEM_WORKQUEUE_STACK_SIZE);
+static K_KERNEL_PINNED_STACK_DEFINE(sys_work_q_stack,
+				    CONFIG_SYSTEM_WORKQUEUE_STACK_SIZE);
 
+__pinned_bss
 struct k_work_q k_sys_work_q;
 
+__boot_func
 static int k_sys_work_q_init(const struct device *dev)
 {
 	ARG_UNUSED(dev);

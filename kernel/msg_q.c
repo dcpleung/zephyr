@@ -26,12 +26,14 @@
 #include <sys/check.h>
 
 #ifdef CONFIG_POLL
+__pinned_func
 static inline void handle_poll_events(struct k_msgq *msgq, uint32_t state)
 {
 	z_handle_obj_poll_events(&msgq->poll_events, state);
 }
 #endif /* CONFIG_POLL */
 
+__pinned_func
 void k_msgq_init(struct k_msgq *msgq, char *buffer, size_t msg_size,
 		 uint32_t max_msgs)
 {
@@ -54,6 +56,7 @@ void k_msgq_init(struct k_msgq *msgq, char *buffer, size_t msg_size,
 	z_object_init(msgq);
 }
 
+__pinned_func
 int z_impl_k_msgq_alloc_init(struct k_msgq *msgq, size_t msg_size,
 			    uint32_t max_msgs)
 {
@@ -82,6 +85,7 @@ int z_impl_k_msgq_alloc_init(struct k_msgq *msgq, size_t msg_size,
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 int z_vrfy_k_msgq_alloc_init(struct k_msgq *msgq, size_t msg_size,
 			    uint32_t max_msgs)
 {
@@ -92,6 +96,7 @@ int z_vrfy_k_msgq_alloc_init(struct k_msgq *msgq, size_t msg_size,
 #include <syscalls/k_msgq_alloc_init_mrsh.c>
 #endif
 
+__pinned_func
 int k_msgq_cleanup(struct k_msgq *msgq)
 {
 	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_msgq, cleanup, msgq);
@@ -113,6 +118,7 @@ int k_msgq_cleanup(struct k_msgq *msgq)
 }
 
 
+__pinned_func
 int z_impl_k_msgq_put(struct k_msgq *msgq, const void *data, k_timeout_t timeout)
 {
 	__ASSERT(!arch_is_in_isr() || K_TIMEOUT_EQ(timeout, K_NO_WAIT), "");
@@ -174,6 +180,7 @@ int z_impl_k_msgq_put(struct k_msgq *msgq, const void *data, k_timeout_t timeout
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline int z_vrfy_k_msgq_put(struct k_msgq *msgq, const void *data,
 				    k_timeout_t timeout)
 {
@@ -185,6 +192,7 @@ static inline int z_vrfy_k_msgq_put(struct k_msgq *msgq, const void *data,
 #include <syscalls/k_msgq_put_mrsh.c>
 #endif
 
+__pinned_func
 void z_impl_k_msgq_get_attrs(struct k_msgq *msgq, struct k_msgq_attrs *attrs)
 {
 	attrs->msg_size = msgq->msg_size;
@@ -193,6 +201,7 @@ void z_impl_k_msgq_get_attrs(struct k_msgq *msgq, struct k_msgq_attrs *attrs)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline void z_vrfy_k_msgq_get_attrs(struct k_msgq *msgq,
 					   struct k_msgq_attrs *attrs)
 {
@@ -203,6 +212,7 @@ static inline void z_vrfy_k_msgq_get_attrs(struct k_msgq *msgq,
 #include <syscalls/k_msgq_get_attrs_mrsh.c>
 #endif
 
+__pinned_func
 int z_impl_k_msgq_get(struct k_msgq *msgq, void *data, k_timeout_t timeout)
 {
 	__ASSERT(!arch_is_in_isr() || K_TIMEOUT_EQ(timeout, K_NO_WAIT), "");
@@ -270,6 +280,7 @@ int z_impl_k_msgq_get(struct k_msgq *msgq, void *data, k_timeout_t timeout)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline int z_vrfy_k_msgq_get(struct k_msgq *msgq, void *data,
 				    k_timeout_t timeout)
 {
@@ -281,6 +292,7 @@ static inline int z_vrfy_k_msgq_get(struct k_msgq *msgq, void *data,
 #include <syscalls/k_msgq_get_mrsh.c>
 #endif
 
+__pinned_func
 int z_impl_k_msgq_peek(struct k_msgq *msgq, void *data)
 {
 	k_spinlock_key_t key;
@@ -305,6 +317,7 @@ int z_impl_k_msgq_peek(struct k_msgq *msgq, void *data)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline int z_vrfy_k_msgq_peek(struct k_msgq *msgq, void *data)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(msgq, K_OBJ_MSGQ));
@@ -315,6 +328,7 @@ static inline int z_vrfy_k_msgq_peek(struct k_msgq *msgq, void *data)
 #include <syscalls/k_msgq_peek_mrsh.c>
 #endif
 
+__pinned_func
 void z_impl_k_msgq_purge(struct k_msgq *msgq)
 {
 	k_spinlock_key_t key;
@@ -337,6 +351,7 @@ void z_impl_k_msgq_purge(struct k_msgq *msgq)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline void z_vrfy_k_msgq_purge(struct k_msgq *msgq)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(msgq, K_OBJ_MSGQ));
@@ -344,6 +359,7 @@ static inline void z_vrfy_k_msgq_purge(struct k_msgq *msgq)
 }
 #include <syscalls/k_msgq_purge_mrsh.c>
 
+__pinned_func
 static inline uint32_t z_vrfy_k_msgq_num_free_get(struct k_msgq *msgq)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(msgq, K_OBJ_MSGQ));
@@ -351,6 +367,7 @@ static inline uint32_t z_vrfy_k_msgq_num_free_get(struct k_msgq *msgq)
 }
 #include <syscalls/k_msgq_num_free_get_mrsh.c>
 
+__pinned_func
 static inline uint32_t z_vrfy_k_msgq_num_used_get(struct k_msgq *msgq)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(msgq, K_OBJ_MSGQ));

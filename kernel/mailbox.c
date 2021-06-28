@@ -28,15 +28,17 @@ struct k_mbox_async {
 };
 
 /* stack of unused asynchronous message descriptors */
-K_STACK_DEFINE(async_msg_free, CONFIG_NUM_MBOX_ASYNC_MSGS);
+K_PINNED_STACK_DEFINE(async_msg_free, CONFIG_NUM_MBOX_ASYNC_MSGS);
 
 /* allocate an asynchronous message descriptor */
+__pinned_func
 static inline void mbox_async_alloc(struct k_mbox_async **async)
 {
 	(void)k_stack_pop(&async_msg_free, (stack_data_t *)async, K_FOREVER);
 }
 
 /* free an asynchronous message descriptor */
+__pinned_func
 static inline void mbox_async_free(struct k_mbox_async *async)
 {
 	k_stack_push(&async_msg_free, (stack_data_t)async);
@@ -49,6 +51,7 @@ static inline void mbox_async_free(struct k_mbox_async *async)
 /*
  * Do run-time initialization of mailbox object subsystem.
  */
+__boot_func
 static int init_mbox_module(const struct device *dev)
 {
 	ARG_UNUSED(dev);
@@ -86,6 +89,7 @@ SYS_INIT(init_mbox_module, PRE_KERNEL_1, CONFIG_KERNEL_INIT_PRIORITY_OBJECTS);
 
 #endif /* CONFIG_NUM_MBOX_ASYNC_MSGS */
 
+__pinned_func
 void k_mbox_init(struct k_mbox *mbox)
 {
 	z_waitq_init(&mbox->tx_msg_queue);
@@ -107,6 +111,7 @@ void k_mbox_init(struct k_mbox *mbox)
  *
  * @return 0 if successfully matched, otherwise -1.
  */
+__pinned_func
 static int mbox_message_match(struct k_mbox_msg *tx_msg,
 			       struct k_mbox_msg *rx_msg)
 {
@@ -161,6 +166,7 @@ static int mbox_message_match(struct k_mbox_msg *tx_msg,
  *
  * @return N/A
  */
+__pinned_func
 static void mbox_message_dispose(struct k_mbox_msg *rx_msg)
 {
 	struct k_thread *sending_thread;
@@ -220,6 +226,7 @@ static void mbox_message_dispose(struct k_mbox_msg *rx_msg)
  *
  * @return 0 if successful, -ENOMSG if failed immediately, -EAGAIN if timed out
  */
+__pinned_func
 static int mbox_message_put(struct k_mbox *mbox, struct k_mbox_msg *tx_msg,
 			     k_timeout_t timeout)
 {
@@ -305,6 +312,7 @@ static int mbox_message_put(struct k_mbox *mbox, struct k_mbox_msg *tx_msg,
 	return ret;
 }
 
+__pinned_func
 int k_mbox_put(struct k_mbox *mbox, struct k_mbox_msg *tx_msg,
 	       k_timeout_t timeout)
 {
@@ -321,6 +329,7 @@ int k_mbox_put(struct k_mbox *mbox, struct k_mbox_msg *tx_msg,
 }
 
 #if (CONFIG_NUM_MBOX_ASYNC_MSGS > 0)
+__pinned_func
 void k_mbox_async_put(struct k_mbox *mbox, struct k_mbox_msg *tx_msg,
 		      struct k_sem *sem)
 {
@@ -345,6 +354,7 @@ void k_mbox_async_put(struct k_mbox *mbox, struct k_mbox_msg *tx_msg,
 }
 #endif
 
+__pinned_func
 void k_mbox_data_get(struct k_mbox_msg *rx_msg, void *buffer)
 {
 	/* handle case where data is to be discarded */
@@ -377,6 +387,7 @@ void k_mbox_data_get(struct k_mbox_msg *rx_msg, void *buffer)
  *
  * @return 0
  */
+__pinned_func
 static int mbox_message_data_check(struct k_mbox_msg *rx_msg, void *buffer)
 {
 	if (buffer != NULL) {
@@ -392,6 +403,7 @@ static int mbox_message_data_check(struct k_mbox_msg *rx_msg, void *buffer)
 	return 0;
 }
 
+__pinned_func
 int k_mbox_get(struct k_mbox *mbox, struct k_mbox_msg *rx_msg, void *buffer,
 	       k_timeout_t timeout)
 {

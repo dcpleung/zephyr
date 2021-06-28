@@ -10,9 +10,13 @@
 #include <kswap.h>
 #include <kernel_internal.h>
 
+__pinned_bss
 static atomic_t global_lock;
+
+__boot_bss
 static atomic_t start_flag;
 
+__pinned_func
 unsigned int z_smp_global_lock(void)
 {
 	unsigned int key = arch_irq_lock();
@@ -27,6 +31,7 @@ unsigned int z_smp_global_lock(void)
 	return key;
 }
 
+__pinned_func
 void z_smp_global_unlock(unsigned int key)
 {
 	if (_current->base.global_lock_count) {
@@ -41,6 +46,7 @@ void z_smp_global_unlock(unsigned int key)
 }
 
 /* Called from within z_swap(), so assumes lock already held */
+__pinned_func
 void z_smp_release_global_lock(struct k_thread *thread)
 {
 	if (!thread->base.global_lock_count) {
@@ -50,6 +56,7 @@ void z_smp_release_global_lock(struct k_thread *thread)
 
 #if CONFIG_MP_NUM_CPUS > 1
 
+__boot_func
 void z_smp_thread_init(void *arg, struct k_thread *thread)
 {
 	atomic_t *cpu_start_flag = arg;
@@ -61,12 +68,14 @@ void z_smp_thread_init(void *arg, struct k_thread *thread)
 	z_dummy_thread_init(thread);
 }
 
+__pinned_func
 void z_smp_thread_swap(void)
 {
 	z_swap_unlocked();
 }
 
 #ifndef CONFIG_SMP_BOOT_DELAY
+__boot_func
 static FUNC_NORETURN void smp_init_top(void *arg)
 {
 	struct k_thread dummy_thread;
@@ -81,6 +90,7 @@ static FUNC_NORETURN void smp_init_top(void *arg)
 #endif
 #endif
 
+__boot_func
 void z_smp_init(void)
 {
 	(void)atomic_clear(&start_flag);
@@ -95,6 +105,7 @@ void z_smp_init(void)
 	(void)atomic_set(&start_flag, 1);
 }
 
+__pinned_func
 bool z_smp_cpu_mobile(void)
 {
 	unsigned int k = arch_irq_lock();

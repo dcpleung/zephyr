@@ -8,6 +8,7 @@
 #include <syscall_handler.h>
 #include <kernel_structs.h>
 
+__pinned_func
 static struct z_object *validate_any_object(const void *obj)
 {
 	struct z_object *ko;
@@ -36,6 +37,7 @@ static struct z_object *validate_any_object(const void *obj)
  * To avoid double z_object_find() lookups, we don't call the implementation
  * function, but call a level deeper.
  */
+__pinned_func
 static inline void z_vrfy_k_object_access_grant(const void *object,
 						struct k_thread *thread)
 {
@@ -49,6 +51,7 @@ static inline void z_vrfy_k_object_access_grant(const void *object,
 }
 #include <syscalls/k_object_access_grant_mrsh.c>
 
+__pinned_func
 static inline void z_vrfy_k_object_release(const void *object)
 {
 	struct z_object *ko;
@@ -60,6 +63,7 @@ static inline void z_vrfy_k_object_release(const void *object)
 }
 #include <syscalls/k_object_release_mrsh.c>
 
+__pinned_func
 static inline void *z_vrfy_k_object_alloc(enum k_objects otype)
 {
 	return z_impl_k_object_alloc(otype);

@@ -19,6 +19,7 @@
 #include <syscall_handler.h>
 #include <kernel_internal.h>
 
+__pinned_func
 void k_stack_init(struct k_stack *stack, stack_data_t *buffer,
 		  uint32_t num_entries)
 {
@@ -31,6 +32,7 @@ void k_stack_init(struct k_stack *stack, stack_data_t *buffer,
 	z_object_init(stack);
 }
 
+__pinned_func
 int32_t z_impl_k_stack_alloc_init(struct k_stack *stack, uint32_t num_entries)
 {
 	void *buffer;
@@ -53,6 +55,7 @@ int32_t z_impl_k_stack_alloc_init(struct k_stack *stack, uint32_t num_entries)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline int32_t z_vrfy_k_stack_alloc_init(struct k_stack *stack,
 					      uint32_t num_entries)
 {
@@ -63,6 +66,7 @@ static inline int32_t z_vrfy_k_stack_alloc_init(struct k_stack *stack,
 #include <syscalls/k_stack_alloc_init_mrsh.c>
 #endif
 
+__pinned_func
 int k_stack_cleanup(struct k_stack *stack)
 {
 	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_stack, cleanup, stack);
@@ -84,6 +88,7 @@ int k_stack_cleanup(struct k_stack *stack)
 	return 0;
 }
 
+__pinned_func
 int z_impl_k_stack_push(struct k_stack *stack, stack_data_t data)
 {
 	struct k_thread *first_pending_thread;
@@ -122,6 +127,7 @@ end:
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline int z_vrfy_k_stack_push(struct k_stack *stack, stack_data_t data)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(stack, K_OBJ_STACK));
@@ -131,6 +137,7 @@ static inline int z_vrfy_k_stack_push(struct k_stack *stack, stack_data_t data)
 #include <syscalls/k_stack_push_mrsh.c>
 #endif
 
+__pinned_func
 int z_impl_k_stack_pop(struct k_stack *stack, stack_data_t *data,
 		       k_timeout_t timeout)
 {
@@ -176,6 +183,7 @@ int z_impl_k_stack_pop(struct k_stack *stack, stack_data_t *data,
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline int z_vrfy_k_stack_pop(struct k_stack *stack,
 				     stack_data_t *data, k_timeout_t timeout)
 {

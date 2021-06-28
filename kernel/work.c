@@ -18,24 +18,28 @@
 #include <ksched.h>
 #include <sys/printk.h>
 
+__pinned_func
 static inline void flag_clear(uint32_t *flagp,
 			      uint32_t bit)
 {
 	*flagp &= ~BIT(bit);
 }
 
+__pinned_func
 static inline void flag_set(uint32_t *flagp,
 			    uint32_t bit)
 {
 	*flagp |= BIT(bit);
 }
 
+__pinned_func
 static inline bool flag_test(const uint32_t *flagp,
 			     uint32_t bit)
 {
 	return (*flagp & BIT(bit)) != 0U;
 }
 
+__pinned_func
 static inline bool flag_test_and_clear(uint32_t *flagp,
 				       int bit)
 {
@@ -46,12 +50,14 @@ static inline bool flag_test_and_clear(uint32_t *flagp,
 	return ret;
 }
 
+__pinned_func
 static inline void flags_set(uint32_t *flagp,
 			     uint32_t flags)
 {
 	*flagp = flags;
 }
 
+__pinned_func
 static inline uint32_t flags_get(const uint32_t *flagp)
 {
 	return *flagp;
@@ -60,9 +66,11 @@ static inline uint32_t flags_get(const uint32_t *flagp)
 /* Lock to protect the internal state of all work items, work queues,
  * and pending_cancels.
  */
+__pinned_bss
 static struct k_spinlock lock;
 
 /* Invoked by work thread */
+__pinned_func
 static void handle_flush(struct k_work *work)
 {
 	struct z_work_flusher *flusher
@@ -71,6 +79,7 @@ static void handle_flush(struct k_work *work)
 	k_sem_give(&flusher->sem);
 }
 
+__pinned_func
 static inline void init_flusher(struct z_work_flusher *flusher)
 {
 	k_sem_init(&flusher->sem, 0, 1);
@@ -78,6 +87,7 @@ static inline void init_flusher(struct z_work_flusher *flusher)
 }
 
 /* List of pending cancellations. */
+__pinned_bss
 static sys_slist_t pending_cancels;
 
 /* Initialize a canceler record and add it to the list of pending
@@ -88,6 +98,7 @@ static sys_slist_t pending_cancels;
  * @param canceler the structure used to notify a waiting process.
  * @param work the work structure that is to be canceled
  */
+__pinned_func
 static inline void init_work_cancel(struct z_work_canceller *canceler,
 				    struct k_work *work)
 {
@@ -106,6 +117,7 @@ static inline void init_work_cancel(struct z_work_canceller *canceler,
  *
  * @param work the work structre that has completed cancellation
  */
+__pinned_func
 static void finalize_cancel_locked(struct k_work *work)
 {
 	struct z_work_canceller *wc, *tmp;
@@ -131,6 +143,7 @@ static void finalize_cancel_locked(struct k_work *work)
 	}
 }
 
+__pinned_func
 void k_work_init(struct k_work *work,
 		  k_work_handler_t handler)
 {
@@ -142,11 +155,13 @@ void k_work_init(struct k_work *work,
 	SYS_PORT_TRACING_OBJ_INIT(k_work, work);
 }
 
+__pinned_func
 static inline int work_busy_get_locked(const struct k_work *work)
 {
 	return flags_get(&work->flags) & K_WORK_MASK;
 }
 
+__pinned_func
 int k_work_busy_get(const struct k_work *work)
 {
 	k_spinlock_key_t key = k_spin_lock(&lock);
@@ -168,6 +183,7 @@ int k_work_busy_get(const struct k_work *work)
  * queue
  * @param flusher an uninitialized/unused flusher object
  */
+__pinned_func
 static void queue_flusher_locked(struct k_work_q *queue,
 				 struct k_work *work,
 				 struct z_work_flusher *flusher)
@@ -199,6 +215,7 @@ static void queue_flusher_locked(struct k_work_q *queue,
  * @param queue the queue from which the work should be removed
  * @param work work that may be on the queue
  */
+__pinned_func
 static inline void queue_remove_locked(struct k_work_q *queue,
 				       struct k_work *work)
 {
@@ -218,6 +235,7 @@ static inline void queue_remove_locked(struct k_work_q *queue,
  * @return true if and only if the queue was notified and woken, i.e. a
  * reschedule is pending.
  */
+__pinned_func
 static inline bool notify_queue_locked(struct k_work_q *queue)
 {
 	bool rv = false;
@@ -248,6 +266,7 @@ static inline bool notify_queue_locked(struct k_work_q *queue)
  * @retval -ENODEV if the queue is not started
  * @retval -EBUSY if the submission was rejected (draining, plugged)
  */
+__pinned_func
 static inline int queue_submit_locked(struct k_work_q *queue,
 				      struct k_work *work)
 {
@@ -308,6 +327,7 @@ static inline int queue_submit_locked(struct k_work_q *queue,
  * @retval -EINVAL if no queue is provided
  * @retval -ENODEV if the queue is not started
  */
+__pinned_func
 static int submit_to_queue_locked(struct k_work *work,
 				  struct k_work_q **queuep)
 {
@@ -355,6 +375,7 @@ static int submit_to_queue_locked(struct k_work *work,
 	return ret;
 }
 
+__pinned_func
 int k_work_submit_to_queue(struct k_work_q *queue,
 			    struct k_work *work)
 {
@@ -382,6 +403,7 @@ int k_work_submit_to_queue(struct k_work_q *queue,
 	return ret;
 }
 
+__pinned_func
 int k_work_submit(struct k_work *work)
 {
 	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_work, submit, work);
@@ -408,6 +430,7 @@ int k_work_submit(struct k_work *work)
  *
  * @retval false otherwise.  No wait required.
  */
+__pinned_func
 static bool work_flush_locked(struct k_work *work,
 			      struct z_work_flusher *flusher)
 {
@@ -426,6 +449,7 @@ static bool work_flush_locked(struct k_work *work,
 	return need_flush;
 }
 
+__pinned_func
 bool k_work_flush(struct k_work *work,
 		  struct k_work_sync *sync)
 {
@@ -469,6 +493,7 @@ bool k_work_flush(struct k_work *work,
  *
  * @return k_busy_wait() captured under lock
  */
+__pinned_func
 static int cancel_async_locked(struct k_work *work)
 {
 	/* If we haven't already started canceling, do it now. */
@@ -505,6 +530,7 @@ static int cancel_async_locked(struct k_work *work)
  *
  * @retval false if work was idle on entry.  The caller need not wait.
  */
+__pinned_func
 static bool cancel_sync_locked(struct k_work *work,
 			       struct z_work_canceller *canceller)
 {
@@ -521,6 +547,7 @@ static bool cancel_sync_locked(struct k_work *work,
 	return ret;
 }
 
+__pinned_func
 int k_work_cancel(struct k_work *work)
 {
 	__ASSERT_NO_MSG(work != NULL);
@@ -538,6 +565,7 @@ int k_work_cancel(struct k_work *work)
 	return ret;
 }
 
+__pinned_func
 bool k_work_cancel_sync(struct k_work *work,
 			struct k_work_sync *sync)
 {
@@ -577,6 +605,7 @@ bool k_work_cancel_sync(struct k_work *work,
  *
  * @param workq_ptr pointer to the work queue structure
  */
+__pinned_func
 static void work_queue_main(void *workq_ptr, void *p2, void *p3)
 {
 	struct k_work_q *queue = (struct k_work_q *)workq_ptr;
@@ -663,6 +692,7 @@ static void work_queue_main(void *workq_ptr, void *p2, void *p3)
 	}
 }
 
+__pinned_func
 void k_work_queue_start(struct k_work_q *queue,
 			k_thread_stack_t *stack,
 			size_t stack_size,
@@ -703,6 +733,7 @@ void k_work_queue_start(struct k_work_q *queue,
 	SYS_PORT_TRACING_OBJ_FUNC_EXIT(k_work_queue, start, queue);
 }
 
+__pinned_func
 int k_work_queue_drain(struct k_work_q *queue,
 		       bool plug)
 {
@@ -735,6 +766,7 @@ int k_work_queue_drain(struct k_work_q *queue,
 	return ret;
 }
 
+__pinned_func
 int k_work_queue_unplug(struct k_work_q *queue)
 {
 	__ASSERT_NO_MSG(queue);
@@ -763,6 +795,7 @@ int k_work_queue_unplug(struct k_work_q *queue)
  * Takes and releases work lock.
  * Conditionally reschedules.
  */
+__pinned_func
 static void work_timeout(struct _timeout *to)
 {
 	struct k_work_delayable *dw
@@ -786,6 +819,7 @@ static void work_timeout(struct _timeout *to)
 	k_spin_unlock(&lock, key);
 }
 
+__pinned_func
 void k_work_init_delayable(struct k_work_delayable *dwork,
 			    k_work_handler_t handler)
 {
@@ -803,11 +837,13 @@ void k_work_init_delayable(struct k_work_delayable *dwork,
 	SYS_PORT_TRACING_OBJ_INIT(k_work_delayable, dwork);
 }
 
+__pinned_func
 static inline int work_delayable_busy_get_locked(const struct k_work_delayable *dwork)
 {
 	return atomic_get(&dwork->work.flags) & K_WORK_MASK;
 }
 
+__pinned_func
 int k_work_delayable_busy_get(const struct k_work_delayable *dwork)
 {
 	k_spinlock_key_t key = k_spin_lock(&lock);
@@ -840,6 +876,7 @@ int k_work_delayable_busy_get(const struct k_work_delayable *dwork)
  * @retval from submit_to_queue_locked() if delay is K_NO_WAIT; otherwise
  * @retval 1 to indicate successfully scheduled.
  */
+__pinned_func
 static int schedule_for_queue_locked(struct k_work_q **queuep,
 				     struct k_work_delayable *dwork,
 				     k_timeout_t delay)
@@ -872,6 +909,7 @@ static int schedule_for_queue_locked(struct k_work_q **queuep,
  * @return true if and only if work had been delayed so the timeout
  * was cancelled.
  */
+__pinned_func
 static inline bool unschedule_locked(struct k_work_delayable *dwork)
 {
 	bool ret = false;
@@ -897,6 +935,7 @@ static inline bool unschedule_locked(struct k_work_delayable *dwork)
  *
  * @return k_work_busy_get() flags
  */
+__pinned_func
 static int cancel_delayable_async_locked(struct k_work_delayable *dwork)
 {
 	(void)unschedule_locked(dwork);
@@ -904,6 +943,7 @@ static int cancel_delayable_async_locked(struct k_work_delayable *dwork)
 	return cancel_async_locked(&dwork->work);
 }
 
+__pinned_func
 int k_work_schedule_for_queue(struct k_work_q *queue,
 			       struct k_work_delayable *dwork,
 			       k_timeout_t delay)
@@ -928,6 +968,7 @@ int k_work_schedule_for_queue(struct k_work_q *queue,
 	return ret;
 }
 
+__pinned_func
 int k_work_schedule(struct k_work_delayable *dwork,
 				   k_timeout_t delay)
 {
@@ -940,6 +981,7 @@ int k_work_schedule(struct k_work_delayable *dwork,
 	return ret;
 }
 
+__pinned_func
 int k_work_reschedule_for_queue(struct k_work_q *queue,
 				 struct k_work_delayable *dwork,
 				 k_timeout_t delay)
@@ -964,6 +1006,7 @@ int k_work_reschedule_for_queue(struct k_work_q *queue,
 	return ret;
 }
 
+__pinned_func
 int k_work_reschedule(struct k_work_delayable *dwork,
 				     k_timeout_t delay)
 {
@@ -976,6 +1019,7 @@ int k_work_reschedule(struct k_work_delayable *dwork,
 	return ret;
 }
 
+__pinned_func
 int k_work_cancel_delayable(struct k_work_delayable *dwork)
 {
 	__ASSERT_NO_MSG(dwork != NULL);
@@ -992,6 +1036,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork)
 	return ret;
 }
 
+__pinned_func
 bool k_work_cancel_delayable_sync(struct k_work_delayable *dwork,
 				  struct k_work_sync *sync)
 {
@@ -1024,6 +1069,7 @@ bool k_work_cancel_delayable_sync(struct k_work_delayable *dwork,
 	return pending;
 }
 
+__pinned_func
 bool k_work_flush_delayable(struct k_work_delayable *dwork,
 			    struct k_work_sync *sync)
 {

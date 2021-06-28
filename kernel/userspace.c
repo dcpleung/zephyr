@@ -46,9 +46,14 @@ LOG_MODULE_DECLARE(os, CONFIG_KERNEL_LOG_LEVEL);
  * not.
  */
 #ifdef CONFIG_DYNAMIC_OBJECTS
+__pinned_bss
 static struct k_spinlock lists_lock;       /* kobj rbtree/dlist */
+
+__pinned_bss
 static struct k_spinlock objfree_lock;     /* k_object_free */
 #endif
+
+__pinned_bss
 static struct k_spinlock obj_lock;         /* kobj struct data */
 
 #define MAX_THREAD_BITS		(CONFIG_MAX_THREAD_BYTES * 8)
@@ -59,6 +64,7 @@ extern uint8_t _thread_idx_map[CONFIG_MAX_THREAD_BYTES];
 
 static void clear_perms_cb(struct z_object *ko, void *ctx_ptr);
 
+__pinned_func
 const char *otype_to_str(enum k_objects otype)
 {
 	const char *ret;
@@ -97,6 +103,7 @@ struct perm_ctx {
  * mode stacks are allocated as an array. The base of the array is
  * aligned to Z_PRIVILEGE_STACK_ALIGN, and all members must be as well.
  */
+__pinned_func
 uint8_t *z_priv_stack_find(k_thread_stack_t *stack)
 {
 	struct z_object *obj = z_object_find(stack);
@@ -151,6 +158,7 @@ static bool node_lessthan(struct rbnode *a, struct rbnode *b);
  * Red/black tree of allocated kernel objects, for reasonably fast lookups
  * based on object pointer values.
  */
+__pinned_data
 static struct rbtree obj_rb_tree = {
 	.lessthan_fn = node_lessthan
 };
@@ -159,6 +167,7 @@ static struct rbtree obj_rb_tree = {
  * Linked list of allocated kernel objects, for iteration over all allocated
  * objects (and potentially deleting them during iteration).
  */
+__pinned_data
 static sys_dlist_t obj_list = SYS_DLIST_STATIC_INIT(&obj_list);
 
 /*
@@ -166,6 +175,7 @@ static sys_dlist_t obj_list = SYS_DLIST_STATIC_INIT(&obj_list);
  * and obj_list.
  */
 
+__pinned_func
 static size_t obj_size_get(enum k_objects otype)
 {
 	size_t ret;
@@ -180,6 +190,7 @@ static size_t obj_size_get(enum k_objects otype)
 	return ret;
 }
 
+__pinned_func
 static size_t obj_align_get(enum k_objects otype)
 {
 	size_t ret;
@@ -200,16 +211,19 @@ static size_t obj_align_get(enum k_objects otype)
 	return ret;
 }
 
+__pinned_func
 static bool node_lessthan(struct rbnode *a, struct rbnode *b)
 {
 	return a < b;
 }
 
+__pinned_func
 static inline struct dyn_obj *node_to_dyn_obj(struct rbnode *node)
 {
 	return CONTAINER_OF(node, struct dyn_obj, node);
 }
 
+__pinned_func
 static inline struct rbnode *dyn_obj_to_node(void *obj)
 {
 	struct dyn_obj *dobj = CONTAINER_OF(obj, struct dyn_obj, data);
@@ -217,6 +231,7 @@ static inline struct rbnode *dyn_obj_to_node(void *obj)
 	return &dobj->node;
 }
 
+__pinned_func
 static struct dyn_obj *dyn_object_find(void *obj)
 {
 	struct rbnode *node;
@@ -256,6 +271,7 @@ static struct dyn_obj *dyn_object_find(void *obj)
  *
  * @return true if successful, false if failed
  **/
+__pinned_func
 static bool thread_idx_alloc(uintptr_t *tidx)
 {
 	int i;
@@ -295,6 +311,7 @@ static bool thread_idx_alloc(uintptr_t *tidx)
  *
  * @param tidx The thread index to be freed
  **/
+__pinned_func
 static void thread_idx_free(uintptr_t tidx)
 {
 	/* To prevent leaked permission when index is recycled */
@@ -303,6 +320,7 @@ static void thread_idx_free(uintptr_t tidx)
 	sys_bitfield_set_bit((mem_addr_t)_thread_idx_map, tidx);
 }
 
+__pinned_func
 struct z_object *z_dynamic_object_aligned_create(size_t align, size_t size)
 {
 	struct dyn_obj *dyn;
@@ -327,6 +345,7 @@ struct z_object *z_dynamic_object_aligned_create(size_t align, size_t size)
 	return &dyn->kobj;
 }
 
+__pinned_func
 void *z_impl_k_object_alloc(enum k_objects otype)
 {
 	struct z_object *zo;
@@ -381,6 +400,7 @@ void *z_impl_k_object_alloc(enum k_objects otype)
 	return zo->name;
 }
 
+__pinned_func
 void k_object_free(void *obj)
 {
 	struct dyn_obj *dyn;
@@ -408,6 +428,7 @@ void k_object_free(void *obj)
 	}
 }
 
+__pinned_func
 struct z_object *z_object_find(const void *obj)
 {
 	struct z_object *ret;
@@ -430,6 +451,7 @@ struct z_object *z_object_find(const void *obj)
 	return ret;
 }
 
+__pinned_func
 void z_object_wordlist_foreach(_wordlist_cb_func_t func, void *context)
 {
 	struct dyn_obj *obj, *next;
@@ -445,6 +467,7 @@ void z_object_wordlist_foreach(_wordlist_cb_func_t func, void *context)
 }
 #endif /* CONFIG_DYNAMIC_OBJECTS */
 
+__pinned_func
 static unsigned int thread_index_get(struct k_thread *thread)
 {
 	struct z_object *ko;
@@ -458,6 +481,7 @@ static unsigned int thread_index_get(struct k_thread *thread)
 	return ko->data.thread_id;
 }
 
+__pinned_func
 static void unref_check(struct z_object *ko, uintptr_t index)
 {
 	k_spinlock_key_t key = k_spin_lock(&obj_lock);
@@ -506,6 +530,7 @@ out:
 	k_spin_unlock(&obj_lock, key);
 }
 
+__pinned_func
 static void wordlist_cb(struct z_object *ko, void *ctx_ptr)
 {
 	struct perm_ctx *ctx = (struct perm_ctx *)ctx_ptr;
@@ -516,6 +541,7 @@ static void wordlist_cb(struct z_object *ko, void *ctx_ptr)
 	}
 }
 
+__pinned_func
 void z_thread_perms_inherit(struct k_thread *parent, struct k_thread *child)
 {
 	struct perm_ctx ctx = {
@@ -529,6 +555,7 @@ void z_thread_perms_inherit(struct k_thread *parent, struct k_thread *child)
 	}
 }
 
+__pinned_func
 void z_thread_perms_set(struct z_object *ko, struct k_thread *thread)
 {
 	int index = thread_index_get(thread);
@@ -538,6 +565,7 @@ void z_thread_perms_set(struct z_object *ko, struct k_thread *thread)
 	}
 }
 
+__pinned_func
 void z_thread_perms_clear(struct z_object *ko, struct k_thread *thread)
 {
 	int index = thread_index_get(thread);
@@ -548,6 +576,7 @@ void z_thread_perms_clear(struct z_object *ko, struct k_thread *thread)
 	}
 }
 
+__pinned_func
 static void clear_perms_cb(struct z_object *ko, void *ctx_ptr)
 {
 	uintptr_t id = (uintptr_t)ctx_ptr;
@@ -555,6 +584,7 @@ static void clear_perms_cb(struct z_object *ko, void *ctx_ptr)
 	unref_check(ko, id);
 }
 
+__pinned_func
 void z_thread_perms_all_clear(struct k_thread *thread)
 {
 	uintptr_t index = thread_index_get(thread);
@@ -564,6 +594,7 @@ void z_thread_perms_all_clear(struct k_thread *thread)
 	}
 }
 
+__pinned_func
 static int thread_perms_test(struct z_object *ko)
 {
 	int index;
@@ -579,6 +610,7 @@ static int thread_perms_test(struct z_object *ko)
 	return 0;
 }
 
+__pinned_func
 static void dump_permission_error(struct z_object *ko)
 {
 	int index = thread_index_get(_current);
@@ -588,6 +620,7 @@ static void dump_permission_error(struct z_object *ko)
 	LOG_HEXDUMP_ERR(ko->perms, sizeof(ko->perms), "permission bitmap");
 }
 
+__pinned_func
 void z_dump_object_error(int retval, const void *obj, struct z_object *ko,
 			enum k_objects otype)
 {
@@ -616,6 +649,7 @@ void z_dump_object_error(int retval, const void *obj, struct z_object *ko,
 	}
 }
 
+__pinned_func
 void z_impl_k_object_access_grant(const void *object, struct k_thread *thread)
 {
 	struct z_object *ko = z_object_find(object);
@@ -625,6 +659,7 @@ void z_impl_k_object_access_grant(const void *object, struct k_thread *thread)
 	}
 }
 
+__pinned_func
 void k_object_access_revoke(const void *object, struct k_thread *thread)
 {
 	struct z_object *ko = z_object_find(object);
@@ -634,11 +669,13 @@ void k_object_access_revoke(const void *object, struct k_thread *thread)
 	}
 }
 
+__pinned_func
 void z_impl_k_object_release(const void *object)
 {
 	k_object_access_revoke(object, _current);
 }
 
+__pinned_func
 void k_object_access_all_grant(const void *object)
 {
 	struct z_object *ko = z_object_find(object);
@@ -648,6 +685,7 @@ void k_object_access_all_grant(const void *object)
 	}
 }
 
+__pinned_func
 int z_object_validate(struct z_object *ko, enum k_objects otype,
 		       enum _obj_init_check init)
 {
@@ -681,6 +719,7 @@ int z_object_validate(struct z_object *ko, enum k_objects otype,
 	return 0;
 }
 
+__pinned_func
 void z_object_init(const void *obj)
 {
 	struct z_object *ko;
@@ -706,6 +745,7 @@ void z_object_init(const void *obj)
 	ko->flags |= K_OBJ_FLAG_INITIALIZED;
 }
 
+__pinned_func
 void z_object_recycle(const void *obj)
 {
 	struct z_object *ko = z_object_find(obj);
@@ -717,6 +757,7 @@ void z_object_recycle(const void *obj)
 	}
 }
 
+__pinned_func
 void z_object_uninit(const void *obj)
 {
 	struct z_object *ko;
@@ -733,6 +774,7 @@ void z_object_uninit(const void *obj)
 /*
  * Copy to/from helper functions used in syscall handlers
  */
+__pinned_func
 void *z_user_alloc_from_copy(const void *src, size_t size)
 {
 	void *dst = NULL;
@@ -753,6 +795,7 @@ out_err:
 	return dst;
 }
 
+__pinned_func
 static int user_copy(void *dst, const void *src, size_t size, bool to_user)
 {
 	int ret = EFAULT;
@@ -769,16 +812,19 @@ out_err:
 	return ret;
 }
 
+__pinned_func
 int z_user_from_copy(void *dst, const void *src, size_t size)
 {
 	return user_copy(dst, src, size, false);
 }
 
+__pinned_func
 int z_user_to_copy(void *dst, const void *src, size_t size)
 {
 	return user_copy(dst, src, size, true);
 }
 
+__pinned_func
 char *z_user_string_alloc_copy(const char *src, size_t maxlen)
 {
 	size_t actual_len;
@@ -812,6 +858,7 @@ out:
 	return ret;
 }
 
+__pinned_func
 int z_user_string_copy(char *dst, const char *src, size_t maxlen)
 {
 	size_t actual_len;
@@ -849,6 +896,7 @@ out:
 extern char __app_shmem_regions_start[];
 extern char __app_shmem_regions_end[];
 
+__boot_func
 static int app_shmem_bss_zero(const struct device *unused)
 {
 	struct z_app_region *region, *end;
@@ -871,6 +919,7 @@ SYS_INIT(app_shmem_bss_zero, PRE_KERNEL_1, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT);
  * Default handlers if otherwise unimplemented
  */
 
+__pinned_func
 static uintptr_t handler_bad_syscall(uintptr_t bad_id, uintptr_t arg2,
 				     uintptr_t arg3, uintptr_t arg4,
 				     uintptr_t arg5, uintptr_t arg6,
@@ -881,6 +930,7 @@ static uintptr_t handler_bad_syscall(uintptr_t bad_id, uintptr_t arg2,
 	CODE_UNREACHABLE; /* LCOV_EXCL_LINE */
 }
 
+__pinned_func
 static uintptr_t handler_no_syscall(uintptr_t arg1, uintptr_t arg2,
 				    uintptr_t arg3, uintptr_t arg4,
 				    uintptr_t arg5, uintptr_t arg6, void *ssf)

@@ -9,6 +9,7 @@
 #include <wait_q.h>
 #include <init.h>
 
+__pinned_func
 void k_heap_init(struct k_heap *h, void *mem, size_t bytes)
 {
 	z_waitq_init(&h->wait_q);
@@ -17,6 +18,7 @@ void k_heap_init(struct k_heap *h, void *mem, size_t bytes)
 	SYS_PORT_TRACING_OBJ_INIT(k_heap, h);
 }
 
+__pinned_func
 static int statics_init(const struct device *unused)
 {
 	ARG_UNUSED(unused);
@@ -28,6 +30,7 @@ static int statics_init(const struct device *unused)
 
 SYS_INIT(statics_init, PRE_KERNEL_1, CONFIG_KERNEL_INIT_PRIORITY_OBJECTS);
 
+__pinned_func
 void *k_heap_aligned_alloc(struct k_heap *h, size_t align, size_t bytes,
 			k_timeout_t timeout)
 {
@@ -71,6 +74,7 @@ void *k_heap_aligned_alloc(struct k_heap *h, size_t align, size_t bytes,
 	return ret;
 }
 
+__pinned_func
 void *k_heap_alloc(struct k_heap *h, size_t bytes, k_timeout_t timeout)
 {
 	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_heap, alloc, h, timeout);
@@ -82,6 +86,7 @@ void *k_heap_alloc(struct k_heap *h, size_t bytes, k_timeout_t timeout)
 	return ret;
 }
 
+__pinned_func
 void k_heap_free(struct k_heap *h, void *mem)
 {
 	k_spinlock_key_t key = k_spin_lock(&h->lock);

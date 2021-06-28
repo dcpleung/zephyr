@@ -44,8 +44,10 @@ LOG_MODULE_DECLARE(os, CONFIG_KERNEL_LOG_LEVEL);
  * "part of" a single k_mutex.  Should move those bits of the API
  * under the scheduler lock so we can break this up.
  */
+__pinned_bss
 static struct k_spinlock lock;
 
+__pinned_func
 int z_impl_k_mutex_init(struct k_mutex *mutex)
 {
 	mutex->owner = NULL;
@@ -61,6 +63,7 @@ int z_impl_k_mutex_init(struct k_mutex *mutex)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline int z_vrfy_k_mutex_init(struct k_mutex *mutex)
 {
 	Z_OOPS(Z_SYSCALL_OBJ_INIT(mutex, K_OBJ_MUTEX));
@@ -69,6 +72,7 @@ static inline int z_vrfy_k_mutex_init(struct k_mutex *mutex)
 #include <syscalls/k_mutex_init_mrsh.c>
 #endif
 
+__pinned_func
 static int32_t new_prio_for_inheritance(int32_t target, int32_t limit)
 {
 	int new_prio = z_is_prio_higher(target, limit) ? target : limit;
@@ -78,6 +82,7 @@ static int32_t new_prio_for_inheritance(int32_t target, int32_t limit)
 	return new_prio;
 }
 
+__pinned_func
 static bool adjust_owner_prio(struct k_mutex *mutex, int32_t new_prio)
 {
 	if (mutex->owner->base.prio != new_prio) {
@@ -92,6 +97,7 @@ static bool adjust_owner_prio(struct k_mutex *mutex, int32_t new_prio)
 	return false;
 }
 
+__pinned_func
 int z_impl_k_mutex_lock(struct k_mutex *mutex, k_timeout_t timeout)
 {
 	int new_prio;
@@ -183,6 +189,7 @@ int z_impl_k_mutex_lock(struct k_mutex *mutex, k_timeout_t timeout)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline int z_vrfy_k_mutex_lock(struct k_mutex *mutex,
 				      k_timeout_t timeout)
 {
@@ -192,6 +199,7 @@ static inline int z_vrfy_k_mutex_lock(struct k_mutex *mutex,
 #include <syscalls/k_mutex_lock_mrsh.c>
 #endif
 
+__pinned_func
 int z_impl_k_mutex_unlock(struct k_mutex *mutex)
 {
 	struct k_thread *new_owner;
@@ -272,6 +280,7 @@ k_mutex_unlock_return:
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline int z_vrfy_k_mutex_unlock(struct k_mutex *mutex)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(mutex, K_OBJ_MUTEX));

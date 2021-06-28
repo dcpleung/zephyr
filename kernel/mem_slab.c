@@ -23,6 +23,7 @@
  *
  * @return N/A
  */
+__pinned_func
 static int create_free_list(struct k_mem_slab *slab)
 {
 	uint32_t j;
@@ -52,6 +53,7 @@ static int create_free_list(struct k_mem_slab *slab)
  *
  * @return N/A
  */
+__pinned_func
 static int init_mem_slab_module(const struct device *dev)
 {
 	int rc = 0;
@@ -72,6 +74,7 @@ out:
 SYS_INIT(init_mem_slab_module, PRE_KERNEL_1,
 	 CONFIG_KERNEL_INIT_PRIORITY_OBJECTS);
 
+__pinned_func
 int k_mem_slab_init(struct k_mem_slab *slab, void *buffer,
 		    size_t block_size, uint32_t num_blocks)
 {
@@ -100,6 +103,7 @@ out:
 	return rc;
 }
 
+__pinned_func
 int k_mem_slab_alloc(struct k_mem_slab *slab, void **mem, k_timeout_t timeout)
 {
 	k_spinlock_key_t key = k_spin_lock(&slab->lock);
@@ -144,6 +148,7 @@ int k_mem_slab_alloc(struct k_mem_slab *slab, void **mem, k_timeout_t timeout)
 	return result;
 }
 
+__pinned_func
 void k_mem_slab_free(struct k_mem_slab *slab, void **mem)
 {
 	k_spinlock_key_t key = k_spin_lock(&slab->lock);

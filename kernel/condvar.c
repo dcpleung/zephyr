@@ -11,8 +11,10 @@
 #include <wait_q.h>
 #include <syscall_handler.h>
 
+__pinned_data
 static struct k_spinlock lock;
 
+__pinned_func
 int z_impl_k_condvar_init(struct k_condvar *condvar)
 {
 	z_waitq_init(&condvar->wait_q);
@@ -24,6 +26,7 @@ int z_impl_k_condvar_init(struct k_condvar *condvar)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 int z_vrfy_k_condvar_init(struct k_condvar *condvar)
 {
 	Z_OOPS(Z_SYSCALL_OBJ_INIT(condvar, K_OBJ_CONDVAR));
@@ -32,6 +35,7 @@ int z_vrfy_k_condvar_init(struct k_condvar *condvar)
 #include <syscalls/k_condvar_init_mrsh.c>
 #endif
 
+__pinned_func
 int z_impl_k_condvar_signal(struct k_condvar *condvar)
 {
 	k_spinlock_key_t key = k_spin_lock(&lock);
@@ -56,6 +60,7 @@ int z_impl_k_condvar_signal(struct k_condvar *condvar)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 int z_vrfy_k_condvar_signal(struct k_condvar *condvar)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(condvar, K_OBJ_CONDVAR));
@@ -64,6 +69,7 @@ int z_vrfy_k_condvar_signal(struct k_condvar *condvar)
 #include <syscalls/k_condvar_signal_mrsh.c>
 #endif
 
+__pinned_func
 int z_impl_k_condvar_broadcast(struct k_condvar *condvar)
 {
 	struct k_thread *pending_thread;
@@ -88,7 +94,9 @@ int z_impl_k_condvar_broadcast(struct k_condvar *condvar)
 
 	return woken;
 }
+
 #ifdef CONFIG_USERSPACE
+__pinned_func
 int z_vrfy_k_condvar_broadcast(struct k_condvar *condvar)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(condvar, K_OBJ_CONDVAR));
@@ -97,6 +105,7 @@ int z_vrfy_k_condvar_broadcast(struct k_condvar *condvar)
 #include <syscalls/k_condvar_broadcast_mrsh.c>
 #endif
 
+__pinned_func
 int z_impl_k_condvar_wait(struct k_condvar *condvar, struct k_mutex *mutex,
 			  k_timeout_t timeout)
 {
@@ -115,7 +124,9 @@ int z_impl_k_condvar_wait(struct k_condvar *condvar, struct k_mutex *mutex,
 
 	return ret;
 }
+
 #ifdef CONFIG_USERSPACE
+__pinned_func
 int z_vrfy_k_condvar_wait(struct k_condvar *condvar, struct k_mutex *mutex,
 			  k_timeout_t timeout)
 {

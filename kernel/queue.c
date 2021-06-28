@@ -27,6 +27,7 @@ struct alloc_node {
 	void *data;
 };
 
+__pinned_func
 void *z_queue_node_peek(sys_sfnode_t *node, bool needs_free)
 {
 	void *ret;
@@ -55,6 +56,7 @@ void *z_queue_node_peek(sys_sfnode_t *node, bool needs_free)
 	return ret;
 }
 
+__pinned_func
 void z_impl_k_queue_init(struct k_queue *queue)
 {
 	sys_sflist_init(&queue->data_q);
@@ -70,6 +72,7 @@ void z_impl_k_queue_init(struct k_queue *queue)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline void z_vrfy_k_queue_init(struct k_queue *queue)
 {
 	Z_OOPS(Z_SYSCALL_OBJ_NEVER_INIT(queue, K_OBJ_QUEUE));
@@ -78,12 +81,14 @@ static inline void z_vrfy_k_queue_init(struct k_queue *queue)
 #include <syscalls/k_queue_init_mrsh.c>
 #endif
 
+__pinned_func
 static void prepare_thread_to_run(struct k_thread *thread, void *data)
 {
 	z_thread_return_value_set_with_data(thread, 0, data);
 	z_ready_thread(thread);
 }
 
+__pinned_func
 static inline void handle_poll_events(struct k_queue *queue, uint32_t state)
 {
 #ifdef CONFIG_POLL
@@ -91,6 +96,7 @@ static inline void handle_poll_events(struct k_queue *queue, uint32_t state)
 #endif
 }
 
+__pinned_func
 void z_impl_k_queue_cancel_wait(struct k_queue *queue)
 {
 	SYS_PORT_TRACING_OBJ_FUNC(k_queue, cancel_wait, queue);
@@ -109,6 +115,7 @@ void z_impl_k_queue_cancel_wait(struct k_queue *queue)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline void z_vrfy_k_queue_cancel_wait(struct k_queue *queue)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(queue, K_OBJ_QUEUE));
@@ -117,6 +124,7 @@ static inline void z_vrfy_k_queue_cancel_wait(struct k_queue *queue)
 #include <syscalls/k_queue_cancel_wait_mrsh.c>
 #endif
 
+__pinned_func
 static int32_t queue_insert(struct k_queue *queue, void *prev, void *data,
 			    bool alloc, bool is_append)
 {
@@ -172,6 +180,7 @@ static int32_t queue_insert(struct k_queue *queue, void *prev, void *data,
 	return 0;
 }
 
+__pinned_func
 void k_queue_insert(struct k_queue *queue, void *prev, void *data)
 {
 	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_queue, insert, queue);
@@ -181,6 +190,7 @@ void k_queue_insert(struct k_queue *queue, void *prev, void *data)
 	SYS_PORT_TRACING_OBJ_FUNC_EXIT(k_queue, insert, queue);
 }
 
+__pinned_func
 void k_queue_append(struct k_queue *queue, void *data)
 {
 	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_queue, append, queue);
@@ -190,6 +200,7 @@ void k_queue_append(struct k_queue *queue, void *data)
 	SYS_PORT_TRACING_OBJ_FUNC_EXIT(k_queue, append, queue);
 }
 
+__pinned_func
 void k_queue_prepend(struct k_queue *queue, void *data)
 {
 	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_queue, prepend, queue);
@@ -199,6 +210,7 @@ void k_queue_prepend(struct k_queue *queue, void *data)
 	SYS_PORT_TRACING_OBJ_FUNC_EXIT(k_queue, prepend, queue);
 }
 
+__pinned_func
 int32_t z_impl_k_queue_alloc_append(struct k_queue *queue, void *data)
 {
 	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_queue, alloc_append, queue);
@@ -211,6 +223,7 @@ int32_t z_impl_k_queue_alloc_append(struct k_queue *queue, void *data)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline int32_t z_vrfy_k_queue_alloc_append(struct k_queue *queue,
 						  void *data)
 {
@@ -220,6 +233,7 @@ static inline int32_t z_vrfy_k_queue_alloc_append(struct k_queue *queue,
 #include <syscalls/k_queue_alloc_append_mrsh.c>
 #endif
 
+__pinned_func
 int32_t z_impl_k_queue_alloc_prepend(struct k_queue *queue, void *data)
 {
 	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_queue, alloc_prepend, queue);
@@ -232,6 +246,7 @@ int32_t z_impl_k_queue_alloc_prepend(struct k_queue *queue, void *data)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline int32_t z_vrfy_k_queue_alloc_prepend(struct k_queue *queue,
 						   void *data)
 {
@@ -241,6 +256,7 @@ static inline int32_t z_vrfy_k_queue_alloc_prepend(struct k_queue *queue,
 #include <syscalls/k_queue_alloc_prepend_mrsh.c>
 #endif
 
+__pinned_func
 int k_queue_append_list(struct k_queue *queue, void *head, void *tail)
 {
 	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_queue, append_list, queue);
@@ -276,6 +292,7 @@ int k_queue_append_list(struct k_queue *queue, void *head, void *tail)
 	return 0;
 }
 
+__pinned_func
 int k_queue_merge_slist(struct k_queue *queue, sys_slist_t *list)
 {
 	int ret;
@@ -311,6 +328,7 @@ int k_queue_merge_slist(struct k_queue *queue, sys_slist_t *list)
 	return 0;
 }
 
+__pinned_func
 void *z_impl_k_queue_get(struct k_queue *queue, k_timeout_t timeout)
 {
 	k_spinlock_key_t key = k_spin_lock(&queue->lock);
@@ -348,6 +366,7 @@ void *z_impl_k_queue_get(struct k_queue *queue, k_timeout_t timeout)
 	return (ret != 0) ? NULL : _current->base.swap_data;
 }
 
+__pinned_func
 bool k_queue_remove(struct k_queue *queue, void *data)
 {
 	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_queue, remove, queue);
@@ -359,6 +378,7 @@ bool k_queue_remove(struct k_queue *queue, void *data)
 	return ret;
 }
 
+__pinned_func
 bool k_queue_unique_append(struct k_queue *queue, void *data)
 {
 	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_queue, unique_append, queue);
@@ -380,6 +400,7 @@ bool k_queue_unique_append(struct k_queue *queue, void *data)
 	return true;
 }
 
+__pinned_func
 void *z_impl_k_queue_peek_head(struct k_queue *queue)
 {
 	void *ret = z_queue_node_peek(sys_sflist_peek_head(&queue->data_q), false);
@@ -389,6 +410,7 @@ void *z_impl_k_queue_peek_head(struct k_queue *queue)
 	return ret;
 }
 
+__pinned_func
 void *z_impl_k_queue_peek_tail(struct k_queue *queue)
 {
 	void *ret = z_queue_node_peek(sys_sflist_peek_tail(&queue->data_q), false);
@@ -399,6 +421,7 @@ void *z_impl_k_queue_peek_tail(struct k_queue *queue)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline void *z_vrfy_k_queue_get(struct k_queue *queue,
 				       k_timeout_t timeout)
 {
@@ -407,6 +430,7 @@ static inline void *z_vrfy_k_queue_get(struct k_queue *queue,
 }
 #include <syscalls/k_queue_get_mrsh.c>
 
+__pinned_func
 static inline int z_vrfy_k_queue_is_empty(struct k_queue *queue)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(queue, K_OBJ_QUEUE));
@@ -414,6 +438,7 @@ static inline int z_vrfy_k_queue_is_empty(struct k_queue *queue)
 }
 #include <syscalls/k_queue_is_empty_mrsh.c>
 
+__pinned_func
 static inline void *z_vrfy_k_queue_peek_head(struct k_queue *queue)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(queue, K_OBJ_QUEUE));
@@ -421,6 +446,7 @@ static inline void *z_vrfy_k_queue_peek_head(struct k_queue *queue)
 }
 #include <syscalls/k_queue_peek_head_mrsh.c>
 
+__pinned_func
 static inline void *z_vrfy_k_queue_peek_tail(struct k_queue *queue)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(queue, K_OBJ_QUEUE));

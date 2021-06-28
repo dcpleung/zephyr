@@ -36,8 +36,10 @@
  * implementation would spin on atomic access to the count variable,
  * and not a spinlock per se.  Useful optimization for the future...
  */
+__pinned_bss
 static struct k_spinlock lock;
 
+__pinned_func
 int z_impl_k_sem_init(struct k_sem *sem, unsigned int initial_count,
 		      unsigned int limit)
 {
@@ -65,6 +67,7 @@ int z_impl_k_sem_init(struct k_sem *sem, unsigned int initial_count,
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 int z_vrfy_k_sem_init(struct k_sem *sem, unsigned int initial_count,
 		      unsigned int limit)
 {
@@ -74,6 +77,7 @@ int z_vrfy_k_sem_init(struct k_sem *sem, unsigned int initial_count,
 #include <syscalls/k_sem_init_mrsh.c>
 #endif
 
+__pinned_func
 static inline void handle_poll_events(struct k_sem *sem)
 {
 #ifdef CONFIG_POLL
@@ -83,6 +87,7 @@ static inline void handle_poll_events(struct k_sem *sem)
 #endif
 }
 
+__pinned_func
 void z_impl_k_sem_give(struct k_sem *sem)
 {
 	k_spinlock_key_t key = k_spin_lock(&lock);
@@ -106,6 +111,7 @@ void z_impl_k_sem_give(struct k_sem *sem)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline void z_vrfy_k_sem_give(struct k_sem *sem)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(sem, K_OBJ_SEM));
@@ -114,6 +120,7 @@ static inline void z_vrfy_k_sem_give(struct k_sem *sem)
 #include <syscalls/k_sem_give_mrsh.c>
 #endif
 
+__pinned_func
 int z_impl_k_sem_take(struct k_sem *sem, k_timeout_t timeout)
 {
 	int ret = 0;
@@ -148,6 +155,7 @@ out:
 	return ret;
 }
 
+__pinned_func
 void z_impl_k_sem_reset(struct k_sem *sem)
 {
 	struct k_thread *thread;
@@ -171,6 +179,7 @@ void z_impl_k_sem_reset(struct k_sem *sem)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline int z_vrfy_k_sem_take(struct k_sem *sem, k_timeout_t timeout)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(sem, K_OBJ_SEM));
@@ -178,6 +187,7 @@ static inline int z_vrfy_k_sem_take(struct k_sem *sem, k_timeout_t timeout)
 }
 #include <syscalls/k_sem_take_mrsh.c>
 
+__pinned_func
 static inline void z_vrfy_k_sem_reset(struct k_sem *sem)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(sem, K_OBJ_SEM));
@@ -185,6 +195,7 @@ static inline void z_vrfy_k_sem_reset(struct k_sem *sem)
 }
 #include <syscalls/k_sem_reset_mrsh.c>
 
+__pinned_func
 static inline unsigned int z_vrfy_k_sem_count_get(struct k_sem *sem)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(sem, K_OBJ_SEM));

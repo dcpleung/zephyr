@@ -9,6 +9,7 @@
 #include <sys/math_extras.h>
 #include <sys/util.h>
 
+__pinned_func
 static void *z_heap_aligned_alloc(struct k_heap *heap, size_t align, size_t size)
 {
 	void *mem;
@@ -40,6 +41,7 @@ static void *z_heap_aligned_alloc(struct k_heap *heap, size_t align, size_t size
 	return mem;
 }
 
+__pinned_func
 void k_free(void *ptr)
 {
 	struct k_heap **heap_ref;
@@ -57,10 +59,11 @@ void k_free(void *ptr)
 }
 
 #if (CONFIG_HEAP_MEM_POOL_SIZE > 0)
-
+__boot_noinit
 K_HEAP_DEFINE(_system_heap, CONFIG_HEAP_MEM_POOL_SIZE);
 #define _SYSTEM_HEAP (&_system_heap)
 
+__pinned_func
 void *k_aligned_alloc(size_t align, size_t size)
 {
 	__ASSERT(align / sizeof(void *) >= 1
@@ -79,6 +82,7 @@ void *k_aligned_alloc(size_t align, size_t size)
 	return ret;
 }
 
+__pinned_func
 void *k_malloc(size_t size)
 {
 	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_heap_sys, k_malloc, _SYSTEM_HEAP);
@@ -90,6 +94,7 @@ void *k_malloc(size_t size)
 	return ret;
 }
 
+__pinned_func
 void *k_calloc(size_t nmemb, size_t size)
 {
 	void *ret;
@@ -113,6 +118,7 @@ void *k_calloc(size_t nmemb, size_t size)
 	return ret;
 }
 
+__pinned_func
 void k_thread_system_pool_assign(struct k_thread *thread)
 {
 	thread->resource_pool = _SYSTEM_HEAP;
@@ -121,6 +127,7 @@ void k_thread_system_pool_assign(struct k_thread *thread)
 #define _SYSTEM_HEAP	NULL
 #endif
 
+__pinned_func
 void *z_thread_aligned_alloc(size_t align, size_t size)
 {
 	void *ret;

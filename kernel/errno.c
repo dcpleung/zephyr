@@ -20,6 +20,7 @@
  * not assembly language safe.
  * FIXME: wastes 4 bytes
  */
+__pinned_rodata
 const int _k_neg_eagain = -EAGAIN;
 
 #ifdef CONFIG_ERRNO
@@ -29,6 +30,7 @@ __thread int z_errno_var;
 #else
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 int *z_impl_z_errno(void)
 {
 	/* Initialized to the lowest address in the stack so the thread can
@@ -37,6 +39,7 @@ int *z_impl_z_errno(void)
 	return &_current->userspace_local_data->errno_var;
 }
 
+__pinned_func
 static inline int *z_vrfy_z_errno(void)
 {
 	return z_impl_z_errno();
@@ -44,6 +47,7 @@ static inline int *z_vrfy_z_errno(void)
 #include <syscalls/z_errno_mrsh.c>
 
 #else
+__pinned_func
 int *z_impl_z_errno(void)
 {
 	return &_current->errno_var;

@@ -32,6 +32,7 @@
  *
  * @return Does not return
  */
+__pinned_func
 void _StackCheckHandler(void)
 {
 	/* Stack canary error is a software fatal condition; treat it as such.
@@ -49,7 +50,7 @@ void _StackCheckHandler(void)
 #ifdef CONFIG_USERSPACE
 K_APP_DMEM(z_libc_partition) uintptr_t __stack_chk_guard;
 #else
-__noinit uintptr_t __stack_chk_guard;
+__pinned_noinit uintptr_t __stack_chk_guard;
 #endif
 
 /**

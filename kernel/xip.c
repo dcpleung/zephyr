@@ -23,6 +23,7 @@ extern volatile uintptr_t __stack_chk_guard;
  *
  * @return N/A
  */
+__boot_func
 void z_data_copy(void)
 {
 	(void)memcpy(&__data_ram_start, &__data_rom_start,

@@ -38,7 +38,7 @@ struct k_pipe_async {
 
 #if (CONFIG_NUM_PIPE_ASYNC_MSGS > 0)
 /* stack of unused asynchronous message descriptors */
-K_STACK_DEFINE(pipe_async_msgs, CONFIG_NUM_PIPE_ASYNC_MSGS);
+K_PINNED_STACK_DEFINE(pipe_async_msgs, CONFIG_NUM_PIPE_ASYNC_MSGS);
 #endif /* CONFIG_NUM_PIPE_ASYNC_MSGS > 0 */
 
 #if (CONFIG_NUM_PIPE_ASYNC_MSGS > 0)
@@ -46,6 +46,7 @@ K_STACK_DEFINE(pipe_async_msgs, CONFIG_NUM_PIPE_ASYNC_MSGS);
 /*
  * Do run-time initialization of pipe object subsystem.
  */
+__boot_func
 static int init_pipes_module(const struct device *dev)
 {
 	ARG_UNUSED(dev);
@@ -85,6 +86,7 @@ SYS_INIT(init_pipes_module, PRE_KERNEL_1, CONFIG_KERNEL_INIT_PRIORITY_OBJECTS);
 
 #endif /* CONFIG_NUM_PIPE_ASYNC_MSGS */
 
+__pinned_func
 void k_pipe_init(struct k_pipe *pipe, unsigned char *buffer, size_t size)
 {
 	pipe->buffer = buffer;
@@ -101,6 +103,7 @@ void k_pipe_init(struct k_pipe *pipe, unsigned char *buffer, size_t size)
 	z_object_init(pipe);
 }
 
+__pinned_func
 int z_impl_k_pipe_alloc_init(struct k_pipe *pipe, size_t size)
 {
 	void *buffer;
@@ -128,6 +131,7 @@ int z_impl_k_pipe_alloc_init(struct k_pipe *pipe, size_t size)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline int z_vrfy_k_pipe_alloc_init(struct k_pipe *pipe, size_t size)
 {
 	Z_OOPS(Z_SYSCALL_OBJ_NEVER_INIT(pipe, K_OBJ_PIPE));
@@ -137,6 +141,7 @@ static inline int z_vrfy_k_pipe_alloc_init(struct k_pipe *pipe, size_t size)
 #include <syscalls/k_pipe_alloc_init_mrsh.c>
 #endif
 
+__pinned_func
 int k_pipe_cleanup(struct k_pipe *pipe)
 {
 	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_pipe, cleanup, pipe);
@@ -164,6 +169,7 @@ int k_pipe_cleanup(struct k_pipe *pipe)
  *
  * @return Number of bytes copied
  */
+__pinned_func
 static size_t pipe_xfer(unsigned char *dest, size_t dest_size,
 			 const unsigned char *src, size_t src_size)
 {
@@ -187,6 +193,7 @@ static size_t pipe_xfer(unsigned char *dest, size_t dest_size,
  *
  * @return Number of bytes written to the pipe's circular buffer
  */
+__pinned_func
 static size_t pipe_buffer_put(struct k_pipe *pipe,
 			       const unsigned char *src, size_t src_size)
 {
@@ -224,6 +231,7 @@ static size_t pipe_buffer_put(struct k_pipe *pipe,
  *
  * @return Number of bytes read from the pipe's circular buffer
  */
+__pinned_func
 static size_t pipe_buffer_get(struct k_pipe *pipe,
 			       unsigned char *dest, size_t dest_size)
 {
@@ -282,6 +290,7 @@ static size_t pipe_buffer_get(struct k_pipe *pipe,
  *
  * @return false if request is unsatisfiable, otherwise true
  */
+__pinned_func
 static bool pipe_xfer_prepare(sys_dlist_t      *xfer_list,
 			       struct k_thread **waiter,
 			       _wait_q_t        *wait_q,
@@ -359,6 +368,7 @@ static bool pipe_xfer_prepare(sys_dlist_t      *xfer_list,
  *
  * @return See table above
  */
+__pinned_func
 static int pipe_return_code(size_t min_xfer, size_t bytes_remaining,
 			     size_t bytes_requested)
 {
@@ -381,6 +391,7 @@ static int pipe_return_code(size_t min_xfer, size_t bytes_remaining,
  *
  * @return N/A
  */
+__pinned_func
 static void pipe_thread_ready(struct k_thread *thread)
 {
 #if (CONFIG_NUM_PIPE_ASYNC_MSGS > 0)
@@ -395,6 +406,7 @@ static void pipe_thread_ready(struct k_thread *thread)
 /**
  * @brief Internal API used to send data to a pipe
  */
+__pinned_func
 int z_pipe_put_internal(struct k_pipe *pipe, struct k_pipe_async *async_desc,
 			 unsigned char *data, size_t bytes_to_write,
 			 size_t *bytes_written, size_t min_xfer,
@@ -544,6 +556,7 @@ int z_pipe_put_internal(struct k_pipe *pipe, struct k_pipe_async *async_desc,
 	return ret;
 }
 
+__pinned_func
 int z_impl_k_pipe_get(struct k_pipe *pipe, void *data, size_t bytes_to_read,
 		     size_t *bytes_read, size_t min_xfer, k_timeout_t timeout)
 {
@@ -713,6 +726,7 @@ int z_impl_k_pipe_get(struct k_pipe *pipe, void *data, size_t bytes_to_read,
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 int z_vrfy_k_pipe_get(struct k_pipe *pipe, void *data, size_t bytes_to_read,
 		      size_t *bytes_read, size_t min_xfer, k_timeout_t timeout)
 {
@@ -727,6 +741,7 @@ int z_vrfy_k_pipe_get(struct k_pipe *pipe, void *data, size_t bytes_to_read,
 #include <syscalls/k_pipe_get_mrsh.c>
 #endif
 
+__pinned_func
 int z_impl_k_pipe_put(struct k_pipe *pipe, void *data, size_t bytes_to_write,
 		     size_t *bytes_written, size_t min_xfer,
 		      k_timeout_t timeout)
@@ -737,6 +752,7 @@ int z_impl_k_pipe_put(struct k_pipe *pipe, void *data, size_t bytes_to_write,
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 int z_vrfy_k_pipe_put(struct k_pipe *pipe, void *data, size_t bytes_to_write,
 		     size_t *bytes_written, size_t min_xfer,
 		      k_timeout_t timeout)
@@ -752,6 +768,7 @@ int z_vrfy_k_pipe_put(struct k_pipe *pipe, void *data, size_t bytes_to_write,
 #include <syscalls/k_pipe_put_mrsh.c>
 #endif
 
+__pinned_func
 size_t z_impl_k_pipe_read_avail(struct k_pipe *pipe)
 {
 	size_t res;
@@ -780,6 +797,7 @@ out:
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 size_t z_vrfy_k_pipe_read_avail(struct k_pipe *pipe)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(pipe, K_OBJ_PIPE));
@@ -789,6 +807,7 @@ size_t z_vrfy_k_pipe_read_avail(struct k_pipe *pipe)
 #include <syscalls/k_pipe_read_avail_mrsh.c>
 #endif
 
+__pinned_func
 size_t z_impl_k_pipe_write_avail(struct k_pipe *pipe)
 {
 	size_t res;
@@ -817,6 +836,7 @@ out:
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 size_t z_vrfy_k_pipe_write_avail(struct k_pipe *pipe)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(pipe, K_OBJ_PIPE));

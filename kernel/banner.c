@@ -19,11 +19,14 @@
 #endif
 
 #if defined(CONFIG_BOOT_DELAY) || CONFIG_BOOT_DELAY > 0
+__boot_func
 void boot_banner(void)
 {
 #if defined(CONFIG_BOOT_DELAY) && CONFIG_BOOT_DELAY > 0
+	__boot_rodata
 	static const unsigned int boot_delay = CONFIG_BOOT_DELAY;
 #else
+	__boot_data
 	static const unsigned int boot_delay;
 #endif
 
@@ -44,6 +47,7 @@ void boot_banner(void)
 #endif
 }
 #else
+__boot_func
 void boot_banner(void)
 {
 	/* do nothing */

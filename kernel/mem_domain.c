@@ -15,12 +15,17 @@
 #include <logging/log.h>
 LOG_MODULE_DECLARE(os, CONFIG_KERNEL_LOG_LEVEL);
 
+__pinned_bss
 struct k_spinlock z_mem_domain_lock;
+
+__pinned_bss
 static uint8_t max_partitions;
 
+__pinned_bss
 struct k_mem_domain k_mem_domain_default;
 
 #if __ASSERT_ON
+__pinned_func
 static bool check_add_partition(struct k_mem_domain *domain,
 				struct k_mem_partition *part)
 {
@@ -86,6 +91,7 @@ static bool check_add_partition(struct k_mem_domain *domain,
 }
 #endif
 
+__pinned_func
 void k_mem_domain_init(struct k_mem_domain *domain, uint8_t num_parts,
 		       struct k_mem_partition *parts[])
 {
@@ -136,6 +142,7 @@ void k_mem_domain_init(struct k_mem_domain *domain, uint8_t num_parts,
 	k_spin_unlock(&z_mem_domain_lock, key);
 }
 
+__pinned_func
 void k_mem_domain_add_partition(struct k_mem_domain *domain,
 				struct k_mem_partition *part)
 {
@@ -173,6 +180,7 @@ void k_mem_domain_add_partition(struct k_mem_domain *domain,
 	k_spin_unlock(&z_mem_domain_lock, key);
 }
 
+__pinned_func
 void k_mem_domain_remove_partition(struct k_mem_domain *domain,
 				  struct k_mem_partition *part)
 {
@@ -209,6 +217,7 @@ void k_mem_domain_remove_partition(struct k_mem_domain *domain,
 	k_spin_unlock(&z_mem_domain_lock, key);
 }
 
+__pinned_func
 static void add_thread_locked(struct k_mem_domain *domain,
 			      k_tid_t thread)
 {
@@ -225,6 +234,7 @@ static void add_thread_locked(struct k_mem_domain *domain,
 #endif
 }
 
+__pinned_func
 static void remove_thread_locked(struct k_thread *thread)
 {
 	__ASSERT_NO_MSG(thread != NULL);
@@ -238,6 +248,7 @@ static void remove_thread_locked(struct k_thread *thread)
 }
 
 /* Called from thread object initialization */
+__pinned_func
 void z_mem_domain_init_thread(struct k_thread *thread)
 {
 	k_spinlock_key_t key = k_spin_lock(&z_mem_domain_lock);
@@ -248,6 +259,7 @@ void z_mem_domain_init_thread(struct k_thread *thread)
 }
 
 /* Called when thread aborts during teardown tasks. sched_spinlock is held */
+__pinned_func
 void z_mem_domain_exit_thread(struct k_thread *thread)
 {
 	k_spinlock_key_t key = k_spin_lock(&z_mem_domain_lock);
@@ -255,6 +267,7 @@ void z_mem_domain_exit_thread(struct k_thread *thread)
 	k_spin_unlock(&z_mem_domain_lock, key);
 }
 
+__pinned_func
 void k_mem_domain_add_thread(struct k_mem_domain *domain, k_tid_t thread)
 {
 	k_spinlock_key_t key;
@@ -267,6 +280,7 @@ void k_mem_domain_add_thread(struct k_mem_domain *domain, k_tid_t thread)
 	k_spin_unlock(&z_mem_domain_lock, key);
 }
 
+__boot_func
 static int init_mem_domain_module(const struct device *arg)
 {
 	ARG_UNUSED(arg);

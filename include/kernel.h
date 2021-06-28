@@ -2466,6 +2466,23 @@ __syscall int k_stack_pop(struct k_stack *stack, stack_data_t *data,
 			  k_timeout_t timeout);
 
 /**
+ * @brief Statically define and initialize a stack in a section
+ *
+ * The stack can be accessed outside the module where it is defined using:
+ *
+ * @code extern struct k_stack <name>; @endcode
+ *
+ * @param name Name of the stack.
+ * @param stack_num_entries Maximum number of values that can be stacked.
+ */
+#define Z_STACK_DEFINE_IN(name, stack_num_entries, lsect)      \
+	stack_data_t __noinit                                  \
+		_k_stack_buf_##name[stack_num_entries];        \
+	Z_STRUCT_SECTION_ITERABLE(k_stack, name) = \
+		Z_STACK_INITIALIZER(name, _k_stack_buf_##name, \
+				    stack_num_entries)
+
+/**
  * @brief Statically define and initialize a stack
  *
  * The stack can be accessed outside the module where it is defined using:
@@ -2476,11 +2493,20 @@ __syscall int k_stack_pop(struct k_stack *stack, stack_data_t *data,
  * @param stack_num_entries Maximum number of values that can be stacked.
  */
 #define K_STACK_DEFINE(name, stack_num_entries)                \
-	stack_data_t __noinit                                  \
-		_k_stack_buf_##name[stack_num_entries];        \
-	Z_STRUCT_SECTION_ITERABLE(k_stack, name) = \
-		Z_STACK_INITIALIZER(name, _k_stack_buf_##name, \
-				    stack_num_entries)
+	Z_STACK_DEFINE_IN(name, stack_num_entries, __noinit)
+
+/**
+ * @brief Statically define and initialize a stack in pinned section
+ *
+ * The stack can be accessed outside the module where it is defined using:
+ *
+ * @code extern struct k_stack <name>; @endcode
+ *
+ * @param name Name of the stack.
+ * @param stack_num_entries Maximum number of values that can be stacked.
+ */
+#define K_PINNED_STACK_DEFINE(name, stack_num_entries)         \
+	Z_STACK_DEFINE_IN(name, stack_num_entries, __pinned_noinit)
 
 /** @} */
 

@@ -32,6 +32,7 @@
  * "inside" a given critical section).  Do the synchronization port
  * later as an optimization.
  */
+__pinned_bss
 static struct k_spinlock lock;
 
 enum POLL_MODE { MODE_NONE, MODE_POLL, MODE_TRIGGERED };
@@ -39,6 +40,7 @@ enum POLL_MODE { MODE_NONE, MODE_POLL, MODE_TRIGGERED };
 static int signal_poller(struct k_poll_event *event, uint32_t state);
 static int signal_triggered_work(struct k_poll_event *event, uint32_t status);
 
+__pinned_func
 void k_poll_event_init(struct k_poll_event *event, uint32_t type,
 		       int mode, void *obj)
 {
@@ -59,6 +61,7 @@ void k_poll_event_init(struct k_poll_event *event, uint32_t type,
 }
 
 /* must be called with interrupts locked */
+__pinned_func
 static inline bool is_condition_met(struct k_poll_event *event, uint32_t *state)
 {
 	switch (event->type) {
@@ -96,11 +99,13 @@ static inline bool is_condition_met(struct k_poll_event *event, uint32_t *state)
 	return false;
 }
 
+__pinned_func
 static struct k_thread *poller_thread(struct z_poller *p)
 {
 	return p ? CONTAINER_OF(p, struct k_thread, poller) : NULL;
 }
 
+__pinned_func
 static inline void add_event(sys_dlist_t *events, struct k_poll_event *event,
 			     struct z_poller *poller)
 {
@@ -126,6 +131,7 @@ static inline void add_event(sys_dlist_t *events, struct k_poll_event *event,
 }
 
 /* must be called with interrupts locked */
+__pinned_func
 static inline void register_event(struct k_poll_event *event,
 				 struct z_poller *poller)
 {
@@ -158,6 +164,7 @@ static inline void register_event(struct k_poll_event *event,
 }
 
 /* must be called with interrupts locked */
+__pinned_func
 static inline void clear_event_registration(struct k_poll_event *event)
 {
 	bool remove_event = false;
@@ -194,6 +201,7 @@ static inline void clear_event_registration(struct k_poll_event *event)
 }
 
 /* must be called with interrupts locked */
+__pinned_func
 static inline void clear_event_registrations(struct k_poll_event *events,
 					      int num_events,
 					      k_spinlock_key_t key)
@@ -205,12 +213,14 @@ static inline void clear_event_registrations(struct k_poll_event *events,
 	}
 }
 
+__pinned_func
 static inline void set_event_ready(struct k_poll_event *event, uint32_t state)
 {
 	event->poller = NULL;
 	event->state |= state;
 }
 
+__pinned_func
 static inline int register_events(struct k_poll_event *events,
 				  int num_events,
 				  struct z_poller *poller,
@@ -242,6 +252,7 @@ static inline int register_events(struct k_poll_event *events,
 	return events_registered;
 }
 
+__pinned_func
 static int signal_poller(struct k_poll_event *event, uint32_t state)
 {
 	struct k_thread *thread = poller_thread(event->poller);
@@ -269,6 +280,7 @@ static int signal_poller(struct k_poll_event *event, uint32_t state)
 	return 0;
 }
 
+__pinned_func
 int z_impl_k_poll(struct k_poll_event *events, int num_events,
 		  k_timeout_t timeout)
 {
@@ -337,6 +349,7 @@ int z_impl_k_poll(struct k_poll_event *events, int num_events,
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline int z_vrfy_k_poll(struct k_poll_event *events,
 				int num_events, k_timeout_t timeout)
 {
@@ -417,6 +430,7 @@ oops_free:
 #endif
 
 /* must be called with interrupts locked */
+__pinned_func
 static int signal_poll_event(struct k_poll_event *event, uint32_t state)
 {
 	struct z_poller *poller = event->poller;
@@ -443,6 +457,7 @@ static int signal_poll_event(struct k_poll_event *event, uint32_t state)
 	return retcode;
 }
 
+__pinned_func
 void z_handle_obj_poll_events(sys_dlist_t *events, uint32_t state)
 {
 	struct k_poll_event *poll_event;
@@ -453,6 +468,7 @@ void z_handle_obj_poll_events(sys_dlist_t *events, uint32_t state)
 	}
 }
 
+__pinned_func
 void z_impl_k_poll_signal_init(struct k_poll_signal *sig)
 {
 	sys_dlist_init(&sig->poll_events);
@@ -464,6 +480,7 @@ void z_impl_k_poll_signal_init(struct k_poll_signal *sig)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline void z_vrfy_k_poll_signal_init(struct k_poll_signal *sig)
 {
 	Z_OOPS(Z_SYSCALL_OBJ_INIT(sig, K_OBJ_POLL_SIGNAL));
@@ -472,6 +489,7 @@ static inline void z_vrfy_k_poll_signal_init(struct k_poll_signal *sig)
 #include <syscalls/k_poll_signal_init_mrsh.c>
 #endif
 
+__pinned_func
 void z_impl_k_poll_signal_reset(struct k_poll_signal *sig)
 {
 	sig->signaled = 0U;
@@ -479,6 +497,7 @@ void z_impl_k_poll_signal_reset(struct k_poll_signal *sig)
 	SYS_PORT_TRACING_FUNC(k_poll_api, signal_reset, sig);
 }
 
+__pinned_func
 void z_impl_k_poll_signal_check(struct k_poll_signal *sig,
 			       unsigned int *signaled, int *result)
 {
@@ -489,6 +508,7 @@ void z_impl_k_poll_signal_check(struct k_poll_signal *sig,
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 void z_vrfy_k_poll_signal_check(struct k_poll_signal *sig,
 			       unsigned int *signaled, int *result)
 {
@@ -500,6 +520,7 @@ void z_vrfy_k_poll_signal_check(struct k_poll_signal *sig,
 #include <syscalls/k_poll_signal_check_mrsh.c>
 #endif
 
+__pinned_func
 int z_impl_k_poll_signal_raise(struct k_poll_signal *sig, int result)
 {
 	k_spinlock_key_t key = k_spin_lock(&lock);
@@ -526,6 +547,7 @@ int z_impl_k_poll_signal_raise(struct k_poll_signal *sig, int result)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline int z_vrfy_k_poll_signal_raise(struct k_poll_signal *sig,
 					     int result)
 {
@@ -534,6 +556,7 @@ static inline int z_vrfy_k_poll_signal_raise(struct k_poll_signal *sig,
 }
 #include <syscalls/k_poll_signal_raise_mrsh.c>
 
+__pinned_func
 static inline void z_vrfy_k_poll_signal_reset(struct k_poll_signal *sig)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(sig, K_OBJ_POLL_SIGNAL));
@@ -543,6 +566,7 @@ static inline void z_vrfy_k_poll_signal_reset(struct k_poll_signal *sig)
 
 #endif
 
+__pinned_func
 static void triggered_work_handler(struct k_work *work)
 {
 	struct k_work_poll *twork =
@@ -566,6 +590,7 @@ static void triggered_work_handler(struct k_work *work)
 	twork->real_handler(work);
 }
 
+__pinned_func
 static void triggered_work_expiration_handler(struct _timeout *timeout)
 {
 	struct k_work_poll *twork =
@@ -576,6 +601,7 @@ static void triggered_work_expiration_handler(struct _timeout *timeout)
 	k_work_submit_to_queue(twork->workq, &twork->work);
 }
 
+__pinned_func
 static int signal_triggered_work(struct k_poll_event *event, uint32_t status)
 {
 	struct z_poller *poller = event->poller;
@@ -593,6 +619,7 @@ static int signal_triggered_work(struct k_poll_event *event, uint32_t status)
 	return 0;
 }
 
+__pinned_func
 static int triggered_work_cancel(struct k_work_poll *work,
 				 k_spinlock_key_t key)
 {
@@ -623,6 +650,7 @@ static int triggered_work_cancel(struct k_work_poll *work,
 	return -EINVAL;
 }
 
+__pinned_func
 void k_work_poll_init(struct k_work_poll *work,
 		      k_work_handler_t handler)
 {
@@ -636,6 +664,7 @@ void k_work_poll_init(struct k_work_poll *work,
 	SYS_PORT_TRACING_OBJ_FUNC_EXIT(k_work_poll, init, work);
 }
 
+__pinned_func
 int k_work_poll_submit_to_queue(struct k_work_q *work_q,
 				struct k_work_poll *work,
 				struct k_poll_event *events,
@@ -749,6 +778,7 @@ int k_work_poll_submit_to_queue(struct k_work_q *work_q,
 	return 0;
 }
 
+__pinned_func
 int k_work_poll_submit(struct k_work_poll *work,
 				     struct k_poll_event *events,
 				     int num_events,
@@ -764,6 +794,7 @@ int k_work_poll_submit(struct k_work_poll *work,
 	return ret;
 }
 
+__pinned_func
 int k_work_poll_cancel(struct k_work_poll *work)
 {
 	k_spinlock_key_t key;

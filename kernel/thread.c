@@ -32,6 +32,7 @@
 LOG_MODULE_DECLARE(os, CONFIG_KERNEL_LOG_LEVEL);
 
 #ifdef CONFIG_THREAD_RUNTIME_STATS
+__pinned_bss
 k_thread_runtime_stats_t threads_runtime_stats;
 #endif
 
@@ -40,12 +41,14 @@ k_thread_runtime_stats_t threads_runtime_stats;
  * initial _kernel.threads pointer and the linked list made up of
  * thread->next_thread (until NULL)
  */
+__pinned_bss
 static struct k_spinlock z_thread_monitor_lock;
 #endif /* CONFIG_THREAD_MONITOR */
 
 #define _FOREACH_STATIC_THREAD(thread_data)              \
 	Z_STRUCT_SECTION_FOREACH(_static_thread_data, thread_data)
 
+__pinned_func
 void k_thread_foreach(k_thread_user_cb_t user_cb, void *user_data)
 {
 #if defined(CONFIG_THREAD_MONITOR)
@@ -74,6 +77,7 @@ void k_thread_foreach(k_thread_user_cb_t user_cb, void *user_data)
 #endif
 }
 
+__pinned_func
 void k_thread_foreach_unlocked(k_thread_user_cb_t user_cb, void *user_data)
 {
 #if defined(CONFIG_THREAD_MONITOR)
@@ -98,6 +102,7 @@ void k_thread_foreach_unlocked(k_thread_user_cb_t user_cb, void *user_data)
 #endif
 }
 
+__pinned_func
 bool k_is_in_isr(void)
 {
 	return arch_is_in_isr();
@@ -107,6 +112,7 @@ bool k_is_in_isr(void)
  * This function tags the current thread as essential to system operation.
  * Exceptions raised by this thread will be treated as a fatal system error.
  */
+__pinned_func
 void z_thread_essential_set(void)
 {
 	_current->base.user_options |= K_ESSENTIAL;
@@ -117,6 +123,7 @@ void z_thread_essential_set(void)
  * Exceptions raised by this thread may be recoverable.
  * (This is the default tag for a thread.)
  */
+__pinned_func
 void z_thread_essential_clear(void)
 {
 	_current->base.user_options &= ~K_ESSENTIAL;
@@ -127,18 +134,21 @@ void z_thread_essential_clear(void)
  *
  * Returns true if current thread is essential, false if it is not.
  */
+__pinned_func
 bool z_is_thread_essential(void)
 {
 	return (_current->base.user_options & K_ESSENTIAL) == K_ESSENTIAL;
 }
 
 #ifdef CONFIG_THREAD_CUSTOM_DATA
+__pinned_func
 void z_impl_k_thread_custom_data_set(void *value)
 {
 	_current->custom_data = value;
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline void z_vrfy_k_thread_custom_data_set(void *data)
 {
 	z_impl_k_thread_custom_data_set(data);
@@ -146,12 +156,14 @@ static inline void z_vrfy_k_thread_custom_data_set(void *data)
 #include <syscalls/k_thread_custom_data_set_mrsh.c>
 #endif
 
+__pinned_func
 void *z_impl_k_thread_custom_data_get(void)
 {
 	return _current->custom_data;
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline void *z_vrfy_k_thread_custom_data_get(void)
 {
 	return z_impl_k_thread_custom_data_get();
@@ -165,6 +177,7 @@ static inline void *z_vrfy_k_thread_custom_data_get(void)
 /*
  * Remove a thread from the kernel's list of active threads.
  */
+__pinned_func
 void z_thread_monitor_exit(struct k_thread *thread)
 {
 	k_spinlock_key_t key = k_spin_lock(&z_thread_monitor_lock);
@@ -188,6 +201,7 @@ void z_thread_monitor_exit(struct k_thread *thread)
 }
 #endif
 
+__pinned_func
 int z_impl_k_thread_name_set(struct k_thread *thread, const char *value)
 {
 #ifdef CONFIG_THREAD_NAME
@@ -212,6 +226,7 @@ int z_impl_k_thread_name_set(struct k_thread *thread, const char *value)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline int z_vrfy_k_thread_name_set(struct k_thread *thread, const char *str)
 {
 #ifdef CONFIG_THREAD_NAME
@@ -239,6 +254,7 @@ static inline int z_vrfy_k_thread_name_set(struct k_thread *thread, const char *
 #include <syscalls/k_thread_name_set_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
+__pinned_func
 const char *k_thread_name_get(struct k_thread *thread)
 {
 #ifdef CONFIG_THREAD_NAME
@@ -249,6 +265,7 @@ const char *k_thread_name_get(struct k_thread *thread)
 #endif /* CONFIG_THREAD_NAME */
 }
 
+__pinned_func
 int z_impl_k_thread_name_copy(k_tid_t thread, char *buf, size_t size)
 {
 #ifdef CONFIG_THREAD_NAME
@@ -262,6 +279,7 @@ int z_impl_k_thread_name_copy(k_tid_t thread, char *buf, size_t size)
 #endif /* CONFIG_THREAD_NAME */
 }
 
+__pinned_func
 const char *k_thread_state_str(k_tid_t thread_id)
 {
 	switch (thread_id->base.thread_state) {
@@ -291,6 +309,7 @@ const char *k_thread_state_str(k_tid_t thread_id)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline int z_vrfy_k_thread_name_copy(k_tid_t thread,
 					    char *buf, size_t size)
 {
@@ -342,6 +361,7 @@ static inline int z_vrfy_k_thread_name_copy(k_tid_t thread,
  * If the check fails, the thread will be terminated appropriately through
  * the system fatal error handler.
  */
+__pinned_func
 void z_check_stack_sentinel(void)
 {
 	uint32_t *stack;
@@ -359,6 +379,7 @@ void z_check_stack_sentinel(void)
 }
 #endif /* CONFIG_STACK_SENTINEL */
 
+__pinned_func
 void z_impl_k_thread_start(struct k_thread *thread)
 {
 	SYS_PORT_TRACING_OBJ_FUNC(k_thread, start, thread);
@@ -367,6 +388,7 @@ void z_impl_k_thread_start(struct k_thread *thread)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline void z_vrfy_k_thread_start(struct k_thread *thread)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(thread, K_OBJ_THREAD));
@@ -377,6 +399,7 @@ static inline void z_vrfy_k_thread_start(struct k_thread *thread)
 #endif
 
 #ifdef CONFIG_MULTITHREADING
+__pinned_func
 static void schedule_new_thread(struct k_thread *thread, k_timeout_t delay)
 {
 #ifdef CONFIG_SYS_CLOCK_EXISTS
@@ -393,8 +416,10 @@ static void schedule_new_thread(struct k_thread *thread, k_timeout_t delay)
 #endif
 
 #if CONFIG_STACK_POINTER_RANDOM
+__pinned_bss
 int z_stack_adjust_initialized;
 
+__pinned_func
 static size_t random_offset(size_t stack_size)
 {
 	size_t random_val;
@@ -425,6 +450,7 @@ static size_t random_offset(size_t stack_size)
 #endif /* CONFIG_STACK_GROWS_UP */
 #endif /* CONFIG_STACK_POINTER_RANDOM */
 
+__pinned_func
 static char *setup_thread_stack(struct k_thread *new_thread,
 				k_thread_stack_t *stack, size_t stack_size)
 {
@@ -506,6 +532,7 @@ static char *setup_thread_stack(struct k_thread *new_thread,
  * K_THREAD_STACK_SIZEOF(stack), or the size value passed to the instance
  * of K_THREAD_STACK_DEFINE() which defined 'stack'.
  */
+__pinned_func
 char *z_setup_new_thread(struct k_thread *new_thread,
 			 k_thread_stack_t *stack, size_t stack_size,
 			 k_thread_entry_t entry,
@@ -613,6 +640,7 @@ char *z_setup_new_thread(struct k_thread *new_thread,
 }
 
 #ifdef CONFIG_MULTITHREADING
+__pinned_func
 k_tid_t z_impl_k_thread_create(struct k_thread *new_thread,
 			      k_thread_stack_t *stack,
 			      size_t stack_size, k_thread_entry_t entry,
@@ -633,11 +661,13 @@ k_tid_t z_impl_k_thread_create(struct k_thread *new_thread,
 
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 bool z_stack_is_user_capable(k_thread_stack_t *stack)
 {
 	return z_object_find(stack) != NULL;
 }
 
+__pinned_func
 k_tid_t z_vrfy_k_thread_create(struct k_thread *new_thread,
 			       k_thread_stack_t *stack,
 			       size_t stack_size, k_thread_entry_t entry,
@@ -709,6 +739,7 @@ k_tid_t z_vrfy_k_thread_create(struct k_thread *new_thread,
 #ifdef CONFIG_MULTITHREADING
 #ifdef CONFIG_USERSPACE
 
+__pinned_func
 static void grant_static_access(void)
 {
 	Z_STRUCT_SECTION_FOREACH(z_object_assignment, pos) {
@@ -720,6 +751,7 @@ static void grant_static_access(void)
 }
 #endif /* CONFIG_USERSPACE */
 
+__boot_func
 void z_init_static_threads(void)
 {
 	_FOREACH_STATIC_THREAD(thread_data) {
@@ -763,6 +795,7 @@ void z_init_static_threads(void)
 }
 #endif
 
+__pinned_func
 void z_init_thread_base(struct _thread_base *thread_base, int priority,
 		       uint32_t initial_state, unsigned int options)
 {
@@ -784,6 +817,7 @@ void z_init_thread_base(struct _thread_base *thread_base, int priority,
 	z_init_thread_timeout(thread_base);
 }
 
+__pinned_func
 FUNC_NORETURN void k_thread_user_mode_enter(k_thread_entry_t entry,
 					    void *p1, void *p2, void *p3)
 {
@@ -820,6 +854,7 @@ FUNC_NORETURN void k_thread_user_mode_enter(k_thread_entry_t entry,
  * them in spinlock.h is a giant header ordering headache.
  */
 #ifdef CONFIG_SPIN_VALIDATE
+__pinned_func
 bool z_spin_lock_valid(struct k_spinlock *l)
 {
 	uintptr_t thread_cpu = l->thread_cpu;
@@ -832,6 +867,7 @@ bool z_spin_lock_valid(struct k_spinlock *l)
 	return true;
 }
 
+__pinned_func
 bool z_spin_unlock_valid(struct k_spinlock *l)
 {
 	if (l->thread_cpu != (_current_cpu->id | (uintptr_t)_current)) {
@@ -841,12 +877,14 @@ bool z_spin_unlock_valid(struct k_spinlock *l)
 	return true;
 }
 
+__pinned_func
 void z_spin_lock_set_owner(struct k_spinlock *l)
 {
 	l->thread_cpu = _current_cpu->id | (uintptr_t)_current;
 }
 
 #ifdef CONFIG_KERNEL_COHERENCE
+__pinned_func
 bool z_spin_lock_mem_coherent(struct k_spinlock *l)
 {
 	return arch_mem_coherent((void *)l);
@@ -855,6 +893,7 @@ bool z_spin_lock_mem_coherent(struct k_spinlock *l)
 
 #endif /* CONFIG_SPIN_VALIDATE */
 
+__pinned_func
 int z_impl_k_float_disable(struct k_thread *thread)
 {
 #if defined(CONFIG_FPU) && defined(CONFIG_FPU_SHARING)
@@ -864,6 +903,7 @@ int z_impl_k_float_disable(struct k_thread *thread)
 #endif /* CONFIG_FPU && CONFIG_FPU_SHARING */
 }
 
+__pinned_func
 int z_impl_k_float_enable(struct k_thread *thread, unsigned int options)
 {
 #if defined(CONFIG_FPU) && defined(CONFIG_FPU_SHARING)
@@ -874,6 +914,7 @@ int z_impl_k_float_enable(struct k_thread *thread, unsigned int options)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline int z_vrfy_k_float_disable(struct k_thread *thread)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(thread, K_OBJ_THREAD));
@@ -888,6 +929,7 @@ static inline int z_vrfy_k_float_disable(struct k_thread *thread)
  */
 K_SEM_DEFINE(offload_sem, 1, 1);
 
+__pinned_func
 void irq_offload(irq_offload_routine_t routine, const void *parameter)
 {
 	k_sem_take(&offload_sem, K_FOREVER);
@@ -901,6 +943,7 @@ void irq_offload(irq_offload_routine_t routine, const void *parameter)
 #error "Unsupported configuration for stack analysis"
 #endif
 
+__pinned_func
 int z_impl_k_thread_stack_space_get(const struct k_thread *thread,
 				    size_t *unused_ptr)
 {
@@ -956,6 +999,7 @@ int z_impl_k_thread_stack_space_get(const struct k_thread *thread,
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 int z_vrfy_k_thread_stack_space_get(const struct k_thread *thread,
 				    size_t *unused_ptr)
 {
@@ -984,6 +1028,7 @@ int z_vrfy_k_thread_stack_space_get(const struct k_thread *thread,
 #endif /* CONFIG_INIT_STACKS && CONFIG_THREAD_STACK_INFO */
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline k_ticks_t z_vrfy_k_thread_timeout_remaining_ticks(
 						    const struct k_thread *t)
 {
@@ -992,6 +1037,7 @@ static inline k_ticks_t z_vrfy_k_thread_timeout_remaining_ticks(
 }
 #include <syscalls/k_thread_timeout_remaining_ticks_mrsh.c>
 
+__pinned_func
 static inline k_ticks_t z_vrfy_k_thread_timeout_expires_ticks(
 						  const struct k_thread *t)
 {
@@ -1002,6 +1048,7 @@ static inline k_ticks_t z_vrfy_k_thread_timeout_expires_ticks(
 #endif
 
 #ifdef CONFIG_INSTRUMENT_THREAD_SWITCHING
+__pinned_func
 void z_thread_mark_switched_in(void)
 {
 #ifdef CONFIG_TRACING
@@ -1021,6 +1068,7 @@ void z_thread_mark_switched_in(void)
 #endif /* CONFIG_THREAD_RUNTIME_STATS */
 }
 
+__pinned_func
 void z_thread_mark_switched_out(void)
 {
 #ifdef CONFIG_THREAD_RUNTIME_STATS
@@ -1065,6 +1113,7 @@ void z_thread_mark_switched_out(void)
 }
 
 #ifdef CONFIG_THREAD_RUNTIME_STATS
+__pinned_func
 int k_thread_runtime_stats_get(k_tid_t thread,
 			       k_thread_runtime_stats_t *stats)
 {
@@ -1078,6 +1127,7 @@ int k_thread_runtime_stats_get(k_tid_t thread,
 	return 0;
 }
 
+__pinned_func
 int k_thread_runtime_stats_all_get(k_thread_runtime_stats_t *stats)
 {
 	if (stats == NULL) {

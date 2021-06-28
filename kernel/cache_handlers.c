@@ -7,12 +7,14 @@
 #include <cache.h>
 #include <syscall_handler.h>
 
+__pinned_func
 static inline int z_vrfy_sys_cache_data_all(int op)
 {
 	return z_impl_sys_cache_data_all(op);
 }
 #include <syscalls/sys_cache_data_all_mrsh.c>
 
+__pinned_func
 static inline int z_vrfy_sys_cache_data_range(void *addr, size_t size, int op)
 {
 	Z_OOPS(Z_SYSCALL_MEMORY_WRITE(addr, size));
@@ -21,12 +23,14 @@ static inline int z_vrfy_sys_cache_data_range(void *addr, size_t size, int op)
 }
 #include <syscalls/sys_cache_data_range_mrsh.c>
 
+__pinned_func
 static inline int z_vrfy_sys_cache_instr_all(int op)
 {
 	return z_impl_sys_cache_instr_all(op);
 }
 #include <syscalls/sys_cache_instr_all_mrsh.c>
 
+__pinned_func
 static inline int z_vrfy_sys_cache_instr_range(void *addr, size_t size, int op)
 {
 	Z_OOPS(Z_SYSCALL_MEMORY_WRITE(addr, size));

@@ -38,10 +38,14 @@
 LOG_MODULE_REGISTER(os, CONFIG_KERNEL_LOG_LEVEL);
 
 /* the only struct z_kernel instance */
+__pinned_bss
 struct z_kernel _kernel;
 
 /* init/main and idle threads */
-K_THREAD_STACK_DEFINE(z_main_stack, CONFIG_MAIN_STACK_SIZE);
+Z_THREAD_STACK_DEFINE_IN(z_main_stack, CONFIG_MAIN_STACK_SIZE,
+			 __pinned_noinit);
+
+__pinned_bss
 struct k_thread z_main_thread;
 
 #ifdef CONFIG_MULTITHREADING
@@ -234,6 +238,7 @@ static void bg_thread_main(void *unused1, void *unused2, void *unused3)
 
 /* LCOV_EXCL_START */
 
+__boot_func
 void __weak main(void)
 {
 	/* NOP default main() if the application does not provide one. */

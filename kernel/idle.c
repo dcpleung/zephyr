@@ -23,6 +23,7 @@ LOG_MODULE_DECLARE(os, CONFIG_KERNEL_LOG_LEVEL);
  * Sets the kernel data structure idle field to either a positive value or
  * K_FOREVER.
  */
+__pinned_func
 static void pm_save_idle(void)
 {
 #ifdef CONFIG_PM
@@ -48,6 +49,7 @@ static void pm_save_idle(void)
 #endif
 }
 
+__pinned_func
 void z_pm_save_idle_exit(int32_t ticks)
 {
 #ifdef CONFIG_PM
@@ -61,6 +63,7 @@ void z_pm_save_idle_exit(int32_t ticks)
 	sys_clock_idle_exit();
 }
 
+__pinned_func
 void idle(void *unused1, void *unused2, void *unused3)
 {
 	ARG_UNUSED(unused1);

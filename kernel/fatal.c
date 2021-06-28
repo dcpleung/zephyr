@@ -18,6 +18,7 @@
 LOG_MODULE_DECLARE(os, CONFIG_KERNEL_LOG_LEVEL);
 
 /* LCOV_EXCL_START */
+__pinned_func
 FUNC_NORETURN __weak void arch_system_halt(unsigned int reason)
 {
 	ARG_UNUSED(reason);
@@ -34,6 +35,7 @@ FUNC_NORETURN __weak void arch_system_halt(unsigned int reason)
 /* LCOV_EXCL_STOP */
 
 /* LCOV_EXCL_START */
+__pinned_func
 __weak void k_sys_fatal_error_handler(unsigned int reason,
 				      const z_arch_esf_t *esf)
 {
@@ -46,6 +48,7 @@ __weak void k_sys_fatal_error_handler(unsigned int reason,
 }
 /* LCOV_EXCL_STOP */
 
+__pinned_func
 static const char *thread_name_get(struct k_thread *thread)
 {
 	const char *thread_name = (thread != NULL) ? k_thread_name_get(thread) : NULL;
@@ -57,6 +60,7 @@ static const char *thread_name_get(struct k_thread *thread)
 	return thread_name;
 }
 
+__pinned_func
 static const char *reason_to_str(unsigned int reason)
 {
 	switch (reason) {
@@ -76,12 +80,14 @@ static const char *reason_to_str(unsigned int reason)
 }
 
 /* LCOV_EXCL_START */
+__pinned_func
 FUNC_NORETURN void k_fatal_halt(unsigned int reason)
 {
 	arch_system_halt(reason);
 }
 /* LCOV_EXCL_STOP */
 
+__pinned_func
 static inline int get_cpu(void)
 {
 #if defined(CONFIG_SMP)
@@ -91,6 +97,7 @@ static inline int get_cpu(void)
 #endif
 }
 
+__pinned_func
 void z_fatal_error(unsigned int reason, const z_arch_esf_t *esf)
 {
 	/* We can't allow this code to be preempted, but don't need to

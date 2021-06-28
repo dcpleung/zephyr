@@ -13,8 +13,13 @@
 extern struct k_mem_paging_stats_t paging_stats;
 
 #ifdef CONFIG_DEMAND_PAGING_TIMING_HISTOGRAM
+__pinned_bss
 struct k_mem_paging_histogram_t z_paging_histogram_eviction;
+
+__pinned_bss
 struct k_mem_paging_histogram_t z_paging_histogram_backing_store_page_in;
+
+__pinned_bss
 struct k_mem_paging_histogram_t z_paging_histogram_backing_store_page_out;
 
 #ifdef CONFIG_DEMAND_PAGING_STATS_USING_TIMING_FUNCTIONS
@@ -41,6 +46,7 @@ k_mem_paging_backing_store_histogram_bounds[
 /*
  * This provides the upper bounds of the bins in eviction timing histogram.
  */
+__pinned_rodata
 __weak unsigned long
 k_mem_paging_eviction_histogram_bounds[CONFIG_DEMAND_PAGING_TIMING_HISTOGRAM_NUM_BINS] = {
 	NS_TO_CYC(1),
@@ -59,6 +65,7 @@ k_mem_paging_eviction_histogram_bounds[CONFIG_DEMAND_PAGING_TIMING_HISTOGRAM_NUM
  * This provides the upper bounds of the bins in backing store timing histogram
  * (both page-in and page-out).
  */
+__pinned_rodata
 __weak unsigned long
 k_mem_paging_backing_store_histogram_bounds[
 	CONFIG_DEMAND_PAGING_TIMING_HISTOGRAM_NUM_BINS] = {
@@ -76,6 +83,7 @@ k_mem_paging_backing_store_histogram_bounds[
 #endif /* CONFIG_DEMAND_PAGING_STATS_USING_TIMING_FUNCTIONS */
 #endif /* CONFIG_DEMAND_PAGING_TIMING_HISTOGRAM */
 
+__pinned_func
 unsigned long z_num_pagefaults_get(void)
 {
 	unsigned long ret;
@@ -88,6 +96,7 @@ unsigned long z_num_pagefaults_get(void)
 	return ret;
 }
 
+__pinned_func
 void z_impl_k_mem_paging_stats_get(struct k_mem_paging_stats_t *stats)
 {
 	if (stats == NULL) {
@@ -99,6 +108,7 @@ void z_impl_k_mem_paging_stats_get(struct k_mem_paging_stats_t *stats)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline
 void z_vrfy_k_mem_paging_stats_get(struct k_mem_paging_stats_t *stats)
 {
@@ -109,6 +119,7 @@ void z_vrfy_k_mem_paging_stats_get(struct k_mem_paging_stats_t *stats)
 #endif /* CONFIG_USERSPACE */
 
 #ifdef CONFIG_DEMAND_PAGING_THREAD_STATS
+__pinned_func
 void z_impl_k_mem_paging_thread_stats_get(struct k_thread *thread,
 					  struct k_mem_paging_stats_t *stats)
 {
@@ -121,6 +132,7 @@ void z_impl_k_mem_paging_thread_stats_get(struct k_thread *thread,
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline
 void z_vrfy_k_mem_paging_thread_stats_get(struct k_thread *thread,
 					  struct k_mem_paging_stats_t *stats)
@@ -135,6 +147,7 @@ void z_vrfy_k_mem_paging_thread_stats_get(struct k_thread *thread,
 #endif /* CONFIG_DEMAND_PAGING_THREAD_STATS */
 
 #ifdef CONFIG_DEMAND_PAGING_TIMING_HISTOGRAM
+__boot_func
 void z_paging_histogram_init(void)
 {
 	/*
@@ -168,6 +181,7 @@ void z_paging_histogram_init(void)
  * @param hist The timing histogram to be updated.
  * @param cycles Time spent in measured operation.
  */
+__pinned_func
 void z_paging_histogram_inc(struct k_mem_paging_histogram_t *hist,
 			    uint32_t cycles)
 {
@@ -183,6 +197,7 @@ void z_paging_histogram_inc(struct k_mem_paging_histogram_t *hist,
 	}
 }
 
+__pinned_func
 void z_impl_k_mem_paging_histogram_eviction_get(
 	struct k_mem_paging_histogram_t *hist)
 {
@@ -195,6 +210,7 @@ void z_impl_k_mem_paging_histogram_eviction_get(
 	       sizeof(z_paging_histogram_eviction));
 }
 
+__pinned_func
 void z_impl_k_mem_paging_histogram_backing_store_page_in_get(
 	struct k_mem_paging_histogram_t *hist)
 {
@@ -207,6 +223,7 @@ void z_impl_k_mem_paging_histogram_backing_store_page_in_get(
 	       sizeof(z_paging_histogram_backing_store_page_in));
 }
 
+__pinned_func
 void z_impl_k_mem_paging_histogram_backing_store_page_out_get(
 	struct k_mem_paging_histogram_t *hist)
 {
@@ -220,6 +237,7 @@ void z_impl_k_mem_paging_histogram_backing_store_page_out_get(
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline
 void z_vrfy_k_mem_paging_histogram_eviction_get(
 	struct k_mem_paging_histogram_t *hist)
@@ -229,6 +247,7 @@ void z_vrfy_k_mem_paging_histogram_eviction_get(
 }
 #include <syscalls/k_mem_paging_histogram_eviction_get_mrsh.c>
 
+__pinned_func
 static inline
 void z_vrfy_k_mem_paging_histogram_backing_store_page_in_get(
 	struct k_mem_paging_histogram_t *hist)
@@ -238,6 +257,7 @@ void z_vrfy_k_mem_paging_histogram_backing_store_page_in_get(
 }
 #include <syscalls/k_mem_paging_histogram_backing_store_page_in_get_mrsh.c>
 
+__pinned_func
 static inline
 void z_vrfy_k_mem_paging_histogram_backing_store_page_out_get(
 	struct k_mem_paging_histogram_t *hist)

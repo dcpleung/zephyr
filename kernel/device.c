@@ -25,6 +25,7 @@ extern const struct device __device_end[];
 
 extern uint32_t __device_init_status_start[];
 
+__boot_func
 static inline void device_pm_state_init(const struct device *dev)
 {
 #ifdef CONFIG_PM_DEVICE
@@ -42,6 +43,7 @@ static inline void device_pm_state_init(const struct device *dev)
  * The state object is always zero-initialized, but this may not be
  * sufficient.
  */
+__boot_func
 void z_device_state_init(void)
 {
 	const struct device *dev = __device_start;
@@ -64,8 +66,10 @@ void z_device_state_init(void)
  *
  * @param level init level to run.
  */
+__boot_func
 void z_sys_init_run_level(int32_t level)
 {
+	__boot_rodata
 	static const struct init_entry *levels[] = {
 		__init_PRE_KERNEL_1_start,
 		__init_PRE_KERNEL_2_start,
@@ -101,6 +105,7 @@ void z_sys_init_run_level(int32_t level)
 	}
 }
 
+__pinned_func
 const struct device *z_impl_device_get_binding(const char *name)
 {
 	const struct device *dev;
@@ -133,6 +138,7 @@ const struct device *z_impl_device_get_binding(const char *name)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline const struct device *z_vrfy_device_get_binding(const char *name)
 {
 	char name_copy[Z_DEVICE_MAX_NAME_LEN];
@@ -146,6 +152,7 @@ static inline const struct device *z_vrfy_device_get_binding(const char *name)
 }
 #include <syscalls/device_get_binding_mrsh.c>
 
+__pinned_func
 static inline int z_vrfy_device_usable_check(const struct device *dev)
 {
 	Z_OOPS(Z_SYSCALL_OBJ_INIT(dev, K_OBJ_ANY));
@@ -155,12 +162,14 @@ static inline int z_vrfy_device_usable_check(const struct device *dev)
 #include <syscalls/device_usable_check_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
+__pinned_func
 size_t z_device_get_all_static(struct device const **devices)
 {
 	*devices = __device_start;
 	return __device_end - __device_start;
 }
 
+__pinned_func
 bool z_device_ready(const struct device *dev)
 {
 	/*
@@ -174,6 +183,7 @@ bool z_device_ready(const struct device *dev)
 	return dev->state->initialized && (dev->state->init_res == 0U);
 }
 
+__pinned_func
 int device_required_foreach(const struct device *dev,
 			  device_visitor_callback_t visitor_cb,
 			  void *context)
@@ -197,6 +207,7 @@ int device_required_foreach(const struct device *dev,
 }
 
 #ifdef CONFIG_PM_DEVICE
+__pinned_func
 int device_any_busy_check(void)
 {
 	const struct device *dev = __device_start;
@@ -212,6 +223,7 @@ int device_any_busy_check(void)
 	return 0;
 }
 
+__pinned_func
 int device_busy_check(const struct device *dev)
 {
 	if (atomic_test_bit(&dev->pm->atomic_flags,
@@ -223,6 +235,7 @@ int device_busy_check(const struct device *dev)
 
 #endif
 
+__pinned_func
 void device_busy_set(const struct device *dev)
 {
 #ifdef CONFIG_PM_DEVICE
@@ -233,6 +246,7 @@ void device_busy_set(const struct device *dev)
 #endif
 }
 
+__pinned_func
 void device_busy_clear(const struct device *dev)
 {
 #ifdef CONFIG_PM_DEVICE

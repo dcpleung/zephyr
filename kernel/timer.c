@@ -13,6 +13,7 @@
 #include <stdbool.h>
 #include <spinlock.h>
 
+__pinned_bss
 static struct k_spinlock lock;
 
 /**
@@ -22,6 +23,7 @@ static struct k_spinlock lock;
  *
  * @return N/A
  */
+__pinned_func
 void z_timer_expiration_handler(struct _timeout *t)
 {
 	struct k_timer *timer = CONTAINER_OF(t, struct k_timer, timeout);
@@ -71,6 +73,7 @@ void z_timer_expiration_handler(struct _timeout *t)
 }
 
 
+__pinned_func
 void k_timer_init(struct k_timer *timer,
 			 k_timer_expiry_t expiry_fn,
 			 k_timer_stop_t stop_fn)
@@ -93,6 +96,7 @@ void k_timer_init(struct k_timer *timer,
 }
 
 
+__pinned_func
 void z_impl_k_timer_start(struct k_timer *timer, k_timeout_t duration,
 			  k_timeout_t period)
 {
@@ -132,6 +136,7 @@ void z_impl_k_timer_start(struct k_timer *timer, k_timeout_t duration,
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline void z_vrfy_k_timer_start(struct k_timer *timer,
 					k_timeout_t duration,
 					k_timeout_t period)
@@ -142,6 +147,7 @@ static inline void z_vrfy_k_timer_start(struct k_timer *timer,
 #include <syscalls/k_timer_start_mrsh.c>
 #endif
 
+__pinned_func
 void z_impl_k_timer_stop(struct k_timer *timer)
 {
 	SYS_PORT_TRACING_OBJ_FUNC(k_timer, stop, timer);
@@ -167,6 +173,7 @@ void z_impl_k_timer_stop(struct k_timer *timer)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline void z_vrfy_k_timer_stop(struct k_timer *timer)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(timer, K_OBJ_TIMER));
@@ -175,6 +182,7 @@ static inline void z_vrfy_k_timer_stop(struct k_timer *timer)
 #include <syscalls/k_timer_stop_mrsh.c>
 #endif
 
+__pinned_func
 uint32_t z_impl_k_timer_status_get(struct k_timer *timer)
 {
 	k_spinlock_key_t key = k_spin_lock(&lock);
@@ -187,6 +195,7 @@ uint32_t z_impl_k_timer_status_get(struct k_timer *timer)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline uint32_t z_vrfy_k_timer_status_get(struct k_timer *timer)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(timer, K_OBJ_TIMER));
@@ -195,6 +204,7 @@ static inline uint32_t z_vrfy_k_timer_status_get(struct k_timer *timer)
 #include <syscalls/k_timer_status_get_mrsh.c>
 #endif
 
+__pinned_func
 uint32_t z_impl_k_timer_status_sync(struct k_timer *timer)
 {
 	__ASSERT(!arch_is_in_isr(), "");
@@ -255,6 +265,7 @@ uint32_t z_impl_k_timer_status_sync(struct k_timer *timer)
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline uint32_t z_vrfy_k_timer_status_sync(struct k_timer *timer)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(timer, K_OBJ_TIMER));
@@ -262,6 +273,7 @@ static inline uint32_t z_vrfy_k_timer_status_sync(struct k_timer *timer)
 }
 #include <syscalls/k_timer_status_sync_mrsh.c>
 
+__pinned_func
 static inline k_ticks_t z_vrfy_k_timer_remaining_ticks(
 						const struct k_timer *timer)
 {
@@ -270,6 +282,7 @@ static inline k_ticks_t z_vrfy_k_timer_remaining_ticks(
 }
 #include <syscalls/k_timer_remaining_ticks_mrsh.c>
 
+__pinned_func
 static inline k_ticks_t z_vrfy_k_timer_expires_ticks(
 						const struct k_timer *timer)
 {
@@ -278,6 +291,7 @@ static inline k_ticks_t z_vrfy_k_timer_expires_ticks(
 }
 #include <syscalls/k_timer_expires_ticks_mrsh.c>
 
+__pinned_func
 static inline void *z_vrfy_k_timer_user_data_get(const struct k_timer *timer)
 {
 	Z_OOPS(Z_SYSCALL_OBJ(timer, K_OBJ_TIMER));
@@ -285,6 +299,7 @@ static inline void *z_vrfy_k_timer_user_data_get(const struct k_timer *timer)
 }
 #include <syscalls/k_timer_user_data_get_mrsh.c>
 
+__pinned_func
 static inline void z_vrfy_k_timer_user_data_set(struct k_timer *timer,
 						void *user_data)
 {

@@ -22,6 +22,7 @@
 #include <arch/cpu.h>
 #include <spinlock.h>
 #include <sys/atomic.h>
+#include <linker/sections.h>
 #include <kernel_structs.h>
 
 /* Single global spinlock for atomic operations.  This is fallback
@@ -29,6 +30,7 @@
  * in SMP contexts we won't content with legitimate users of the
  * global lock.
  */
+__pinned_bss
 static struct k_spinlock lock;
 
 /* For those rare CPUs which support user mode, but not native atomic
@@ -40,6 +42,7 @@ static struct k_spinlock lock;
 #include <syscall_handler.h>
 
 #define ATOMIC_SYSCALL_HANDLER_TARGET(name) \
+	__pinned_func \
 	static inline atomic_val_t z_vrfy_##name(atomic_t *target) \
 	{								\
 		Z_OOPS(Z_SYSCALL_MEMORY_WRITE(target, sizeof(atomic_t))); \
@@ -47,6 +50,7 @@ static struct k_spinlock lock;
 	}
 
 #define ATOMIC_SYSCALL_HANDLER_TARGET_VALUE(name) \
+	__pinned_func \
 	static inline atomic_val_t z_vrfy_##name(atomic_t *target, \
 						 atomic_val_t value) \
 	{								\
@@ -78,6 +82,7 @@ static struct k_spinlock lock;
  * @param new_value value to compare against
  * @return Returns true if <new_value> is written, false otherwise.
  */
+__pinned_func
 bool z_impl_atomic_cas(atomic_t *target, atomic_val_t old_value,
 		       atomic_val_t new_value)
 {
@@ -97,6 +102,7 @@ bool z_impl_atomic_cas(atomic_t *target, atomic_val_t old_value,
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 bool z_vrfy_atomic_cas(atomic_t *target, atomic_val_t old_value,
 		       atomic_val_t new_value)
 {
@@ -107,6 +113,7 @@ bool z_vrfy_atomic_cas(atomic_t *target, atomic_val_t old_value,
 #include <syscalls/atomic_cas_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
+__pinned_func
 bool z_impl_atomic_ptr_cas(atomic_ptr_t *target, atomic_ptr_val_t old_value,
 			   atomic_ptr_val_t new_value)
 {
@@ -126,6 +133,7 @@ bool z_impl_atomic_ptr_cas(atomic_ptr_t *target, atomic_ptr_val_t old_value,
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline bool z_vrfy_atomic_ptr_cas(atomic_ptr_t *target,
 					 atomic_ptr_val_t old_value,
 					 atomic_ptr_val_t new_value)
@@ -150,6 +158,7 @@ static inline bool z_vrfy_atomic_ptr_cas(atomic_ptr_t *target,
  *
  * @return The previous value from <target>
  */
+__pinned_func
 atomic_val_t z_impl_atomic_add(atomic_t *target, atomic_val_t value)
 {
 	k_spinlock_key_t key;
@@ -180,6 +189,7 @@ ATOMIC_SYSCALL_HANDLER_TARGET_VALUE(atomic_add);
  *
  * @return The previous value from <target>
  */
+__pinned_func
 atomic_val_t z_impl_atomic_sub(atomic_t *target, atomic_val_t value)
 {
 	k_spinlock_key_t key;
@@ -209,11 +219,13 @@ ATOMIC_SYSCALL_HANDLER_TARGET_VALUE(atomic_sub);
  *
  * @return The value read from <target>
  */
+__pinned_func
 atomic_val_t atomic_get(const atomic_t *target)
 {
 	return *target;
 }
 
+__pinned_func
 atomic_ptr_val_t atomic_ptr_get(const atomic_ptr_t *target)
 {
 	return *target;
@@ -231,6 +243,7 @@ atomic_ptr_val_t atomic_ptr_get(const atomic_ptr_t *target)
  *
  * @return The previous value from <target>
  */
+__pinned_func
 atomic_val_t z_impl_atomic_set(atomic_t *target, atomic_val_t value)
 {
 	k_spinlock_key_t key;
@@ -248,6 +261,7 @@ atomic_val_t z_impl_atomic_set(atomic_t *target, atomic_val_t value)
 
 ATOMIC_SYSCALL_HANDLER_TARGET_VALUE(atomic_set);
 
+__pinned_func
 atomic_ptr_val_t z_impl_atomic_ptr_set(atomic_ptr_t *target,
 				       atomic_ptr_val_t value)
 {
@@ -265,6 +279,7 @@ atomic_ptr_val_t z_impl_atomic_ptr_set(atomic_ptr_t *target,
 }
 
 #ifdef CONFIG_USERSPACE
+__pinned_func
 static inline atomic_ptr_val_t z_vrfy_atomic_ptr_set(atomic_ptr_t *target,
 						     atomic_ptr_val_t value)
 {
@@ -288,6 +303,7 @@ static inline atomic_ptr_val_t z_vrfy_atomic_ptr_set(atomic_ptr_t *target,
  *
  * @return The previous value from <target>
  */
+__pinned_func
 atomic_val_t z_impl_atomic_or(atomic_t *target, atomic_val_t value)
 {
 	k_spinlock_key_t key;
@@ -318,6 +334,7 @@ ATOMIC_SYSCALL_HANDLER_TARGET_VALUE(atomic_or);
  *
  * @return The previous value from <target>
  */
+__pinned_func
 atomic_val_t z_impl_atomic_xor(atomic_t *target, atomic_val_t value)
 {
 	k_spinlock_key_t key;
@@ -348,6 +365,7 @@ ATOMIC_SYSCALL_HANDLER_TARGET_VALUE(atomic_xor);
  *
  * @return The previous value from <target>
  */
+__pinned_func
 atomic_val_t z_impl_atomic_and(atomic_t *target, atomic_val_t value)
 {
 	k_spinlock_key_t key;
@@ -378,6 +396,7 @@ ATOMIC_SYSCALL_HANDLER_TARGET_VALUE(atomic_and);
  *
  * @return The previous value from <target>
  */
+__pinned_func
 atomic_val_t z_impl_atomic_nand(atomic_t *target, atomic_val_t value)
 {
 	k_spinlock_key_t key;

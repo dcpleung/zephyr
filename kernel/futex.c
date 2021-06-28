@@ -12,6 +12,7 @@
 #include <init.h>
 #include <ksched.h>
 
+__pinned_func
 static struct z_futex_data *k_futex_find_data(struct k_futex *futex)
 {
 	struct z_object *obj;
@@ -24,6 +25,7 @@ static struct z_futex_data *k_futex_find_data(struct k_futex *futex)
 	return obj->data.futex_data;
 }
 
+__pinned_func
 int z_impl_k_futex_wake(struct k_futex *futex, bool wake_all)
 {
 	k_spinlock_key_t key;
@@ -52,6 +54,7 @@ int z_impl_k_futex_wake(struct k_futex *futex, bool wake_all)
 	return woken;
 }
 
+__pinned_func
 static inline int z_vrfy_k_futex_wake(struct k_futex *futex, bool wake_all)
 {
 	if (Z_SYSCALL_MEMORY_WRITE(futex, sizeof(struct k_futex)) != 0) {
@@ -62,6 +65,7 @@ static inline int z_vrfy_k_futex_wake(struct k_futex *futex, bool wake_all)
 }
 #include <syscalls/k_futex_wake_mrsh.c>
 
+__pinned_func
 int z_impl_k_futex_wait(struct k_futex *futex, int expected,
 			k_timeout_t timeout)
 {
@@ -90,6 +94,7 @@ int z_impl_k_futex_wait(struct k_futex *futex, int expected,
 	return ret;
 }
 
+__pinned_func
 static inline int z_vrfy_k_futex_wait(struct k_futex *futex, int expected,
 				      k_timeout_t timeout)
 {
