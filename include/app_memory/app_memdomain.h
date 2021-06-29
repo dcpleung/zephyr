@@ -120,6 +120,7 @@ struct z_app_region {
 #define K_APPMEM_PARTITION_DEFINE(name) \
 	extern char Z_APP_START(name)[]; \
 	extern char Z_APP_SIZE(name)[]; \
+	__pinned_data \
 	struct k_mem_partition name = { \
 		.start = (uintptr_t) &Z_APP_START(name), \
 		.size = (size_t) &Z_APP_SIZE(name), \
