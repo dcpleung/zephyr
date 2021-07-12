@@ -19,7 +19,7 @@ else()
   set(QEMU_CPU_TYPE_${ARCH} qemu32,+nx,+pae)
 endif()
 
-if(CONFIG_XIP)
+if(CONFIG_XIP OR CONFIG_BOARD_QEMU_X86_TINY)
   # Extra 4MB to emulate flash area
   math(EXPR QEMU_MEMORY_SIZE_MB "${CONFIG_SRAM_SIZE} / 1024 + 4")
 else()
@@ -69,3 +69,9 @@ endif()
 # board_set_debugger_ifnset(qemu)
 # debugserver: QEMU_EXTRA_FLAGS += -s -S
 # debugserver: qemu
+
+if(CONFIG_BOARD_QEMU_X86_TINY AND CONFIG_DEMAND_PAGING)
+  # This is to map the flash so it is accessible.
+  set(X86_EXTRA_GEN_MMU_ARGUMENTS
+      --map ${CONFIG_FLASH_BASE_ADDRESS},${CONFIG_FLASH_SIZE})
+endif()

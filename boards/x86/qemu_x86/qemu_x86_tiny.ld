@@ -47,9 +47,12 @@ MEMORY
 #endif
     RAM (wx)        : ORIGIN = KERNEL_BASE_ADDR, LENGTH = KERNEL_RAM_SIZE
 
+#if defined(CONFIG_DEMAND_PAGING) && !defined(CONFIG_LINKER_GENERIC_SECTIONS_PRESENT_AT_BOOT)
+    FLASH (rw)      : ORIGIN = FLASH_ROM_ADDR, LENGTH = FLASH_ROM_SIZE
+#endif
+
     /*
      * On 32-bit x86, fake memory area for build-time IDT generation data.
-     * 64-bit doesn't use this, interrupts are all manaaged at runtime.
      *
      * It doesn't matter where this region goes as it is stripped from the
      * final ELF image. The address doesn't even have to be valid on the
@@ -71,6 +74,27 @@ MEMORY
 	#define MMU_PAGE_ALIGN		. = ALIGN(CONFIG_MMU_PAGE_SIZE);
 #else
 	#define MMU_PAGE_ALIGN
+#endif
+
+#if defined(CONFIG_DEMAND_PAGING) && !defined(CONFIG_LINKER_GENERIC_SECTIONS_PRESENT_AT_BOOT)
+
+#undef SECTION_PROLOGUE
+#define SECTION_PROLOGUE(name, options, align) \
+        name options : ALIGN_WITH_INPUT align
+
+#undef SECTION_DATA_PROLOGUE
+#define SECTION_DATA_PROLOGUE(name, options, align) \
+        name options : ALIGN_WITH_INPUT align
+
+#undef GROUP_ROM_LINK_IN
+#define GROUP_ROM_LINK_IN(vregion, lregion) > vregion AT > lregion
+
+#undef GROUP_DATA_LINK_IN
+#define GROUP_DATA_LINK_IN(vregion, lregion) > vregion AT > lregion
+
+#undef GROUP_NOLOAD_LINK_IN
+#define GROUP_NOLOAD_LINK_IN(vregion, lregion) > vregion AT > lregion
+
 #endif
 
 /* Used to align areas with separate memory permission characteristics
@@ -102,6 +126,8 @@ MEMORY
 #define LIB_DRIVERS_IN_SECT(lsect)					\
 	*libdrivers__serial.a:(.##lsect)				\
 	*libdrivers__serial.a:(.##lsect##.*)				\
+	*rand32_timer.c.obj(.##lsect)					\
+	*rand32_timer.c.obj(.##lsect##.*)				\
 	*uart_console.c.obj(.##lsect)					\
 	*uart_console.c.obj(.##lsect##.*)
 
@@ -428,6 +454,11 @@ SECTIONS
 	lnkr_pinned_noinit_size = lnkr_pinned_noinit_end - lnkr_pinned_noinit_start;
 
 #endif /* CONFIG_LINKER_USE_PINNED_SECTION */
+
+#if defined(CONFIG_DEMAND_PAGING) && !defined(CONFIG_LINKER_GENERIC_SECTIONS_PRESENT_AT_BOOT)
+#undef ROMABLE_REGION
+#define ROMABLE_REGION	FLASH
+#endif
 
 	GROUP_START(ROMABLE_REGION)
 

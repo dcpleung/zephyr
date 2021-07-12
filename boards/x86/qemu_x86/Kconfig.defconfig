@@ -82,4 +82,8 @@ config HAVE_CUSTOM_LINKER_SCRIPT
 config CUSTOM_LINKER_SCRIPT
 	default "${ZEPHYR_BASE}/boards/x86/qemu_x86/qemu_x86_tiny.ld"
 
+config X86_EXTRA_PAGE_TABLE_PAGES
+	# This is needed for gen_mmu.py to map the flash into memory
+	default 1 if DEMAND_PAGING
+
 endif # BOARD_QEMU_X86_TINY
