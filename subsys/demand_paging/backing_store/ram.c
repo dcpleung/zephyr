@@ -8,6 +8,7 @@
 #include <mmu.h>
 #include <string.h>
 #include <kernel_arch_interface.h>
+#include <linker/sections.h>
 
 /*
  * TODO:
@@ -50,11 +51,17 @@
  * starts getting set for certain page frames after a page-in (and possibly
  * cleared at a later time).
  */
+__pinned_bss
 static char backing_store[CONFIG_MMU_PAGE_SIZE *
 			  CONFIG_BACKING_STORE_RAM_PAGES];
+
+__pinned_bss
 static struct k_mem_slab backing_slabs;
+
+__pinned_bss
 static unsigned int free_slabs;
 
+__pinned_func
 static void *location_to_slab(uintptr_t location)
 {
 	__ASSERT(location % CONFIG_MMU_PAGE_SIZE == 0,
@@ -66,6 +73,7 @@ static void *location_to_slab(uintptr_t location)
 	return backing_store + location;
 }
 
+__pinned_func
 static uintptr_t slab_to_location(void *slab)
 {
 	char *pos = slab;
@@ -81,6 +89,7 @@ static uintptr_t slab_to_location(void *slab)
 	return offset;
 }
 
+__pinned_func
 int k_mem_paging_backing_store_location_get(struct z_page_frame *pf,
 					    uintptr_t *location,
 					    bool page_fault)
@@ -101,6 +110,7 @@ int k_mem_paging_backing_store_location_get(struct z_page_frame *pf,
 	return 0;
 }
 
+__pinned_func
 void k_mem_paging_backing_store_location_free(uintptr_t location)
 {
 	void *slab = location_to_slab(location);
@@ -109,24 +119,28 @@ void k_mem_paging_backing_store_location_free(uintptr_t location)
 	free_slabs++;
 }
 
+__pinned_func
 void k_mem_paging_backing_store_page_out(uintptr_t location)
 {
 	(void)memcpy(location_to_slab(location), Z_SCRATCH_PAGE,
 		     CONFIG_MMU_PAGE_SIZE);
 }
 
+__pinned_func
 void k_mem_paging_backing_store_page_in(uintptr_t location)
 {
 	(void)memcpy(Z_SCRATCH_PAGE, location_to_slab(location),
 		     CONFIG_MMU_PAGE_SIZE);
 }
 
+__pinned_func
 void k_mem_paging_backing_store_page_finalize(struct z_page_frame *pf,
 					      uintptr_t location)
 {
 	k_mem_paging_backing_store_location_free(location);
 }
 
+__boot_func
 void k_mem_paging_backing_store_init(void)
 {
 	k_mem_slab_init(&backing_slabs, backing_store, CONFIG_MMU_PAGE_SIZE,
