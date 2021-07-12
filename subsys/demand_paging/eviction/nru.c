@@ -9,6 +9,7 @@
 #include <mmu.h>
 #include <kernel_arch_interface.h>
 #include <init.h>
+#include <linker/sections.h>
 
 /* The accessed and dirty states of each page frame are used to create
  * a hierarchy with a numerical value. When evicting a page, try to evict
@@ -22,6 +23,7 @@
  * 2 accessed, clean
  * 3 accessed, dirty
  */
+__pinned_func
 static void nru_periodic_update(struct k_timer *timer)
 {
 	uintptr_t phys;
@@ -40,6 +42,7 @@ static void nru_periodic_update(struct k_timer *timer)
 	irq_unlock(key);
 }
 
+__pinned_func
 struct z_page_frame *k_mem_paging_eviction_select(bool *dirty_ptr)
 {
 	unsigned int last_prec = 4U;
@@ -89,6 +92,7 @@ struct z_page_frame *k_mem_paging_eviction_select(bool *dirty_ptr)
 
 static K_TIMER_DEFINE(nru_timer, nru_periodic_update, NULL);
 
+__boot_func
 void k_mem_paging_eviction_init(void)
 {
 	k_timer_start(&nru_timer, K_NO_WAIT,
