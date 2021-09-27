@@ -472,6 +472,8 @@ add_subdirectory(boards)
 add_subdirectory(subsys)
 add_subdirectory(drivers)
 
+add_subdirectory(extra_obj_files)
+
 # Include zephyr modules generated CMake file.
 foreach(module_name ${ZEPHYR_MODULE_NAMES})
   # Note the second, binary_dir parameter requires the added
@@ -1031,6 +1033,8 @@ if(CONFIG_USERSPACE)
     set(NEWLIB_PART -l libc_nano.a z_libc_partition)
   endif()
 
+  set(EXTRA_LIB_PART -l libextra_obj_files.a extra_obj_files_part)
+
   add_custom_command(
     OUTPUT ${APP_SMEM_UNALIGNED_LD} ${APP_SMEM_PINNED_UNALIGNED_LD}
     COMMAND ${PYTHON_EXECUTABLE}
@@ -1040,6 +1044,7 @@ if(CONFIG_USERSPACE)
     $<$<BOOL:${APP_SMEM_PINNED_UNALIGNED_LD}>:--pinoutput=${APP_SMEM_PINNED_UNALIGNED_LD}>
     ${APP_SMEM_PINNED_PARTITION_LIST_ARG}
     ${NEWLIB_PART}
+    ${EXTRA_LIB_PART}
     $<TARGET_PROPERTY:zephyr_property_target,COMPILE_OPTIONS>
     $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:--verbose>
     DEPENDS
@@ -1097,6 +1102,7 @@ if(CONFIG_USERSPACE)
     $<$<BOOL:${APP_SMEM_PINNED_ALIGNED_LD}>:--pinoutput=${APP_SMEM_PINNED_ALIGNED_LD}>
     ${APP_SMEM_PINNED_PARTITION_LIST_ARG}
     ${NEWLIB_PART}
+    ${EXTRA_LIB_PART}
     $<TARGET_PROPERTY:zephyr_property_target,COMPILE_OPTIONS>
     $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:--verbose>
     DEPENDS

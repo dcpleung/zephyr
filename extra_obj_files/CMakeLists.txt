@@ -1,0 +1,2 @@
+zephyr_library_named(extra_obj_files)
+zephyr_library_sources(objfile.c)
