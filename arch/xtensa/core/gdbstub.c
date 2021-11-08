@@ -14,7 +14,8 @@
 
 static bool not_first_break;
 
-extern struct gdb_ctx xtensa_gdb_ctx;
+extern struct gdb_ctx_common xtensa_gdb_ctx_common;
+extern struct gdb_ctx xtensa_gdb_ctx[CONFIG_MP_NUM_CPUS];
 
 /*
  * Special register number (from specreg.h).
@@ -99,13 +100,15 @@ enum {
  * Read one special register.
  *
  * @param ctx GDB context
- * @param reg Register descriptor
+ * @param idx Index to register list
  */
-static void read_sreg(struct gdb_ctx *ctx, struct xtensa_register *reg)
+static void read_sreg(struct gdb_ctx *ctx, int idx)
 {
 	uint8_t regno;
 	uint32_t val;
 	bool has_val = true;
+	const struct xtensa_register *reg = &xtensa_gdb_ctx_common.regs[idx];
+	struct xtensa_register_val *reg_val = &ctx->reg_vals[idx];
 
 	if (!gdb_xtensa_is_special_reg(reg)) {
 		return;
@@ -320,8 +323,8 @@ static void read_sreg(struct gdb_ctx *ctx, struct xtensa_register *reg)
 	}
 
 	if (has_val) {
-		reg->val = val;
-		reg->seqno = ctx->seqno;
+		reg_val->val = val;
+		reg_val->seqno = ctx->seqno;
 	}
 }
 
@@ -424,8 +427,9 @@ static unsigned int get_gdb_exception_reason(unsigned int reason)
  */
 static void copy_to_ctx(struct gdb_ctx *ctx, const z_arch_esf_t *stack)
 {
-	struct xtensa_register *reg;
-	int idx, num_laddr_regs;
+	const struct xtensa_register *reg;
+	struct xtensa_register_val *reg_val;
+	int idx, reg_idx, num_laddr_regs;
 
 	uint32_t *bsa = *(int **)stack;
 
@@ -441,39 +445,43 @@ static void copy_to_ctx(struct gdb_ctx *ctx, const z_arch_esf_t *stack)
 
 	/* Get logical address registers A0 - A<num_laddr_regs> from stack */
 	for (idx = 0; idx < num_laddr_regs; idx++) {
-		reg = &xtensa_gdb_ctx.regs[xtensa_gdb_ctx.a0_idx + idx];
+		reg_idx = xtensa_gdb_ctx_common.a0_idx + idx;
+
+		reg = &xtensa_gdb_ctx_common.regs[reg_idx];
+		reg_val = &ctx->reg_vals[reg_idx];
 
 		if (reg->regno == SOC_GDB_REGNO_A1) {
 			/* A1 is calculated */
-			reg->val = POINTER_TO_UINT(
+			reg_val->val = POINTER_TO_UINT(
 					((char *)bsa) + BASE_SAVE_AREA_SIZE);
-			reg->seqno = ctx->seqno;
+			reg_val->seqno = ctx->seqno;
 		} else {
-			reg->val = bsa[reg->stack_offset / 4];
-			reg->seqno = ctx->seqno;
+			reg_val->val = bsa[reg->stack_offset / 4];
+			reg_val->seqno = ctx->seqno;
 		}
 	}
 
 	/* For registers other than logical address registers */
-	for (idx = 0; idx < xtensa_gdb_ctx.num_regs; idx++) {
-		reg = &xtensa_gdb_ctx.regs[idx];
+	for (idx = 0; idx < xtensa_gdb_ctx_common.num_regs; idx++) {
+		reg = &xtensa_gdb_ctx_common.regs[idx];
+		reg_val = &ctx->reg_vals[idx];
 
 		if (gdb_xtensa_is_logical_addr_reg(reg)) {
 			/* Logical address registers are handled above */
 			continue;
 		} else if (reg->stack_offset != 0) {
 			/* For those registers stashed in stack */
-			reg->val = bsa[reg->stack_offset / 4];
-			reg->seqno = ctx->seqno;
+			reg_val->val = bsa[reg->stack_offset / 4];
+			reg_val->seqno = ctx->seqno;
 		} else if (gdb_xtensa_is_special_reg(reg)) {
-			read_sreg(ctx, reg);
+			read_sreg(ctx, idx);
 		}
 	}
 
 #if XCHAL_HAVE_WINDOWED
 	uint8_t a0_idx, ar_idx, wb_start;
 
-	wb_start = (uint8_t)xtensa_gdb_ctx.regs[xtensa_gdb_ctx.wb_idx].val;
+	wb_start = (uint8_t)ctx->reg_vals[xtensa_gdb_ctx_common.wb_idx].val;
 
 	/*
 	 * Copied the logical registers A0-A15 to physical registers (AR*)
@@ -481,7 +489,7 @@ static void copy_to_ctx(struct gdb_ctx *ctx, const z_arch_esf_t *stack)
 	 */
 	for (idx = 0; idx < num_laddr_regs; idx++) {
 		/* Index to register description array for A */
-		a0_idx = xtensa_gdb_ctx.a0_idx + idx;
+		a0_idx = xtensa_gdb_ctx_common.a0_idx + idx;
 
 		/* Find the start of window (== WINDOWBASE * 4) */
 		ar_idx = wb_start * 4;
@@ -490,10 +498,11 @@ static void copy_to_ctx(struct gdb_ctx *ctx, const z_arch_esf_t *stack)
 		/* Wrap around A64 (or A32) -> A0 */
 		ar_idx %= XCHAL_NUM_AREGS;
 		/* Index to register description array for AR */
-		ar_idx += xtensa_gdb_ctx.ar_idx;
+		ar_idx += xtensa_gdb_ctx_common.ar_idx;
 
-		xtensa_gdb_ctx.regs[ar_idx].val = xtensa_gdb_ctx.regs[a0_idx].val;
-		xtensa_gdb_ctx.regs[ar_idx].seqno = xtensa_gdb_ctx.regs[a0_idx].seqno;
+
+		ctx->reg_vals[ar_idx].val = ctx->reg_vals[a0_idx].val;
+		ctx->reg_vals[ar_idx].seqno = ctx->reg_vals[a0_idx].seqno;
 	}
 #endif
 
@@ -515,8 +524,8 @@ static void copy_to_ctx(struct gdb_ctx *ctx, const z_arch_esf_t *stack)
  */
 static void restore_from_ctx(struct gdb_ctx *ctx, const z_arch_esf_t *stack)
 {
-	struct xtensa_register *reg;
-	int idx, num_laddr_regs;
+	const struct xtensa_register *reg;
+	int idx, num_laddr_regs, reg_idx;
 
 	uint32_t *bsa = *(int **)stack;
 
@@ -541,25 +550,26 @@ static void restore_from_ctx(struct gdb_ctx *ctx, const z_arch_esf_t *stack)
 	 * back to stack.
 	 */
 	for (idx = 0; idx < num_laddr_regs; idx++) {
-		reg = &xtensa_gdb_ctx.regs[xtensa_gdb_ctx.a0_idx + idx];
+		reg_idx = xtensa_gdb_ctx_common.a0_idx + idx;
+		reg = &xtensa_gdb_ctx_common.regs[reg_idx];
 
 		if (reg->regno == SOC_GDB_REGNO_A1) {
 			/* Shouldn't be changing stack pointer */
 			continue;
 		} else {
-			bsa[reg->stack_offset / 4] = reg->val;
+			bsa[reg->stack_offset / 4] = ctx->reg_vals[reg_idx].val;
 		}
 	}
 
-	for (idx = 0; idx < xtensa_gdb_ctx.num_regs; idx++) {
-		reg = &xtensa_gdb_ctx.regs[idx];
+	for (idx = 0; idx < xtensa_gdb_ctx_common.num_regs; idx++) {
+		reg = &xtensa_gdb_ctx_common.regs[idx];
 
 		if (gdb_xtensa_is_logical_addr_reg(reg)) {
 			/* Logical address registers are handled above */
 			continue;
 		} else if (reg->stack_offset != 0) {
 			/* For those registers stashed in stack */
-			bsa[reg->stack_offset / 4] = reg->val;
+			bsa[reg->stack_offset / 4] = ctx->reg_vals[idx].val;
 		} else if (gdb_xtensa_is_special_reg(reg)) {
 			/*
 			 * Currently not writing back any special
@@ -604,13 +614,17 @@ void arch_gdb_step(void)
  * Note that this assumes the output buffer always has enough
  * space.
  *
- * @param reg Xtensa register
- * @param hex Pointer to output buffer
+ * @param reg     Xtensa register struct
+ * @param reg_val Xtensa register value struct
+ * @param hex     Pointer to output buffer
+ *
  * @return Number of bytes written to output buffer
  */
-static size_t reg2hex(const struct xtensa_register *reg, char *hex)
+static size_t reg2hex(const struct xtensa_register *reg,
+		      const struct xtensa_register_val *reg_val,
+		      char *hex)
 {
-	uint8_t *bin = (uint8_t *)&reg->val;
+	uint8_t *bin = (uint8_t *)&reg_val->val;
 	size_t binlen = reg->byte_size;
 
 	for (size_t i = 0; i < binlen; i++) {
@@ -627,7 +641,8 @@ static size_t reg2hex(const struct xtensa_register *reg, char *hex)
 
 size_t arch_gdb_reg_readall(struct gdb_ctx *ctx, uint8_t *buf, size_t buflen)
 {
-	struct xtensa_register *reg;
+	const struct xtensa_register *reg;
+	struct xtensa_register_val *reg_val;
 	int idx;
 	uint8_t *output;
 	size_t ret;
@@ -644,10 +659,11 @@ size_t arch_gdb_reg_readall(struct gdb_ctx *ctx, uint8_t *buf, size_t buflen)
 	memset(buf, 'x', SOC_GDB_GPKT_HEX_SIZE);
 
 	ret = 0;
-	for (idx = 0; idx < ctx->num_regs; idx++) {
-		reg = &ctx->regs[idx];
+	for (idx = 0; idx < xtensa_gdb_ctx_common.num_regs; idx++) {
+		reg = &xtensa_gdb_ctx_common.regs[idx];
+		reg_val = &ctx->reg_vals[idx];
 
-		if (reg->seqno != ctx->seqno) {
+		if (reg_val->seqno != ctx->seqno) {
 			/*
 			 * Register struct has stale value from
 			 * previous debug interrupt. Don't
@@ -673,7 +689,7 @@ size_t arch_gdb_reg_readall(struct gdb_ctx *ctx, uint8_t *buf, size_t buflen)
 		/* Two hex characters per byte */
 		output = &buf[reg->gpkt_offset * 2];
 
-		if (reg2hex(reg, output) == 0) {
+		if (reg2hex(reg, reg_val, output) == 0) {
 			goto out;
 		}
 	}
@@ -701,20 +717,22 @@ size_t arch_gdb_reg_writeall(struct gdb_ctx *ctx, uint8_t *hex, size_t hexlen)
 size_t arch_gdb_reg_readone(struct gdb_ctx *ctx, uint8_t *buf, size_t buflen,
 			    uint32_t regno)
 {
-	struct xtensa_register *reg;
+	const struct xtensa_register *reg;
+	struct xtensa_register_val *reg_val;
 	int idx;
 	size_t ret;
 
 	ret = 0;
-	for (idx = 0; idx < ctx->num_regs; idx++) {
-		reg = &ctx->regs[idx];
+	for (idx = 0; idx < xtensa_gdb_ctx_common.num_regs; idx++) {
+		reg = &xtensa_gdb_ctx_common.regs[idx];
+		reg_val = &ctx->reg_vals[idx];
 
 		/*
 		 * GDB sends the G-packet index as register number
 		 * instead of the actual Xtensa register number.
 		 */
 		if (reg->idx == regno) {
-			if (reg->seqno != ctx->seqno) {
+			if (reg_val->seqno != ctx->seqno) {
 				/*
 				 * Register value has stale value from
 				 * previous debug interrupt. Report
@@ -740,7 +758,7 @@ size_t arch_gdb_reg_readone(struct gdb_ctx *ctx, uint8_t *buf, size_t buflen,
 				goto out;
 			}
 
-			ret = reg2hex(reg, buf);
+			ret = reg2hex(reg, reg_val, buf);
 
 			break;
 		}
@@ -753,13 +771,15 @@ out:
 size_t arch_gdb_reg_writeone(struct gdb_ctx *ctx, uint8_t *hex, size_t hexlen,
 			     uint32_t regno)
 {
-	struct xtensa_register *reg = NULL;
+	const struct xtensa_register *reg;
+	struct xtensa_register_val *reg_val;
 	int idx;
 	size_t ret;
 
 	ret = 0;
-	for (idx = 0; idx < ctx->num_regs; idx++) {
-		reg = &ctx->regs[idx];
+	for (idx = 0; idx < xtensa_gdb_ctx_common.num_regs; idx++) {
+		reg = &xtensa_gdb_ctx_common.regs[idx];
+		reg_val = &ctx->reg_vals[idx];
 
 		/*
 		 * Remember GDB sends index number instead of
@@ -776,11 +796,11 @@ size_t arch_gdb_reg_writeone(struct gdb_ctx *ctx, uint8_t *hex, size_t hexlen,
 		}
 
 		/* Register value is now up-to-date */
-		reg->seqno = ctx->seqno;
+		reg_val->seqno = ctx->seqno;
 
 		/* Convert from hexadecimal into binary */
 		ret = hex2bin(hex, hexlen,
-			      (uint8_t *)&reg->val, reg->byte_size);
+			      (uint8_t *)&reg_val->val, reg->byte_size);
 		break;
 	}
 
@@ -916,26 +936,36 @@ out:
 void z_gdb_isr(z_arch_esf_t *esf)
 {
 	uint32_t reg;
+	uint32_t prid;
+	struct gdb_ctx *ctx;
+
+#if CONFIG_MP_NUM_CPUS > 1
+	__asm__ volatile("rsr %0, PRID" : "=r"(prid));
+#else
+	prid = 0;
+#endif
+
+	ctx = &xtensa_gdb_ctx[prid];
 
 	reg = get_one_sreg(DEBUGCAUSE);
 	if (reg != 0) {
 		/* Manual breaking */
-		xtensa_gdb_ctx.exception = GDB_EXCEPTION_BREAKPOINT;
+		ctx->exception = GDB_EXCEPTION_BREAKPOINT;
 	} else {
 		/* Actual exception */
 		reg = get_one_sreg(EXCCAUSE);
-		xtensa_gdb_ctx.exception = get_gdb_exception_reason(reg);
+		ctx->exception = get_gdb_exception_reason(reg);
 	}
 
-	xtensa_gdb_ctx.seqno++;
+	ctx->seqno++;
 
 	/* Copy registers into GDB context */
-	copy_to_ctx(&xtensa_gdb_ctx, esf);
+	copy_to_ctx(ctx, esf);
 
-	z_gdb_main_loop(&xtensa_gdb_ctx);
+	z_gdb_main_loop(ctx);
 
 	/* Restore registers from GDB context */
-	restore_from_ctx(&xtensa_gdb_ctx, esf);
+	restore_from_ctx(ctx, esf);
 }
 
 void arch_gdb_init(void)
@@ -946,19 +976,19 @@ void arch_gdb_init(void)
 	 * Find out the starting index in the register
 	 * description array of certain registers.
 	 */
-	for (idx = 0; idx < xtensa_gdb_ctx.num_regs; idx++) {
-		switch (xtensa_gdb_ctx.regs[idx].regno) {
+	for (idx = 0; idx < xtensa_gdb_ctx_common.num_regs; idx++) {
+		switch (xtensa_gdb_ctx_common.regs[idx].regno) {
 		case 0x0000:
 			/* A0: 0x0000 */
-			xtensa_gdb_ctx.a0_idx = idx;
+			xtensa_gdb_ctx_common.a0_idx = idx;
 			break;
 		case XTREG_GRP_ADDR:
 			/* AR0: 0x0100 */
-			xtensa_gdb_ctx.ar_idx = idx;
+			xtensa_gdb_ctx_common.ar_idx = idx;
 			break;
 		case (XTREG_GRP_SPECIAL + WINDOWBASE):
 			/* WINDOWBASE (Special Register) */
-			xtensa_gdb_ctx.wb_idx = idx;
+			xtensa_gdb_ctx_common.wb_idx = idx;
 			break;
 		default:
 			break;

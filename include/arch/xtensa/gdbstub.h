@@ -35,9 +35,6 @@
  * gpkt_offset : ofs
  */
 struct xtensa_register {
-	/* Register value */
-	uint32_t	val;
-
 	/* GDB register index (for p/P packets) */
 	uint8_t		idx;
 
@@ -57,13 +54,21 @@ struct xtensa_register {
 	 */
 	int8_t		stack_offset;
 
-	/* Sequence number */
-	uint8_t		seqno;
-
 	/* Set 1 to if register should not be written
 	 * to during debugging.
 	 */
 	uint8_t		is_read_only:1;
+};
+
+/*
+ * Hold the value of a register at runtime.
+ */
+struct xtensa_register_val {
+	/* Register value */
+	uint32_t	val;
+
+	/* Sequence number */
+	uint8_t		seqno;
 };
 
 /* Due to Xtensa SoCs being highly configurable,
@@ -78,18 +83,13 @@ struct xtensa_register {
  */
 #include <gdbstub/soc.h>
 
-struct gdb_ctx {
-	/* Exception reason */
-	unsigned int		exception;
-
+struct gdb_ctx_common {
 	/* Register descriptions */
+	const
 	struct xtensa_register	*regs;
 
 	/* Number of registers */
 	uint8_t			num_regs;
-
-	/* Sequence number */
-	uint8_t			seqno;
 
 	/* Index in register descriptions of A0 register */
 	uint8_t			a0_idx;
@@ -101,13 +101,25 @@ struct gdb_ctx {
 	uint8_t			wb_idx;
 };
 
+struct gdb_ctx {
+	/* Exception reason */
+	unsigned int		exception;
+
+	/* Register value array */
+	struct xtensa_register_val
+				*reg_vals;
+
+	/* Sequence number */
+	uint8_t			seqno;
+};
+
 /**
  * Test if the register is a logical address register (A0 - A15).
  *
  * @retval true  if register is A0 - A15
  * @retval false if register is not A0 - A15
  */
-static inline bool gdb_xtensa_is_logical_addr_reg(struct xtensa_register *reg)
+static inline bool gdb_xtensa_is_logical_addr_reg(const struct xtensa_register *reg)
 {
 	if (reg->regno < 16) {
 		return true;
@@ -122,7 +134,7 @@ static inline bool gdb_xtensa_is_logical_addr_reg(struct xtensa_register *reg)
  * @retval true  if register is AR0 - AR31/AR63
  * @retval false if not
  */
-static inline bool gdb_xtensa_is_address_reg(struct xtensa_register *reg)
+static inline bool gdb_xtensa_is_address_reg(const struct xtensa_register *reg)
 {
 	if ((reg->regno & XTREG_GRP_MASK) == XTREG_GRP_ADDR) {
 		return true;
@@ -138,7 +150,7 @@ static inline bool gdb_xtensa_is_address_reg(struct xtensa_register *reg)
  * @retval true  if special register
  * @retval false if not
  */
-static inline bool gdb_xtensa_is_special_reg(struct xtensa_register *reg)
+static inline bool gdb_xtensa_is_special_reg(const struct xtensa_register *reg)
 {
 	if ((reg->regno & XTREG_GRP_MASK) == XTREG_GRP_SPECIAL) {
 		return true;
@@ -154,7 +166,7 @@ static inline bool gdb_xtensa_is_special_reg(struct xtensa_register *reg)
  * @retval true  if user register
  * @retval false if not
  */
-static inline bool gdb_xtensa_is_user_reg(struct xtensa_register *reg)
+static inline bool gdb_xtensa_is_user_reg(const struct xtensa_register *reg)
 {
 	if ((reg->regno & XTREG_GRP_MASK) == XTREG_GRP_USER) {
 		return true;

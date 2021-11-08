@@ -7,6 +7,7 @@
 #include <kernel.h>
 #include <xtensa-asm2-context.h>
 #include <debug/gdbstub.h>
+#include <sys/__assert.h>
 
 /*
  * Address Mappings From ESP32 Technical Reference Manual Version 4.5
@@ -787,7 +788,31 @@ static struct xtensa_register gdb_reg_list[] = {
 	},
 };
 
-struct gdb_ctx xtensa_gdb_ctx = {
+struct gdb_ctx_common xtensa_gdb_ctx_common = {
 	.regs = gdb_reg_list,
 	.num_regs = ARRAY_SIZE(gdb_reg_list),
+};
+
+struct xtensa_register_val
+xtensa_gdb_reg_vals[CONFIG_MP_NUM_CPUS][ARRAY_SIZE(gdb_reg_list)];
+
+struct gdb_ctx xtensa_gdb_ctx[CONFIG_MP_NUM_CPUS] = {
+	{
+		.reg_vals = &xtensa_gdb_reg_vals[0][0],
+	},
+#if CONFIG_MP_NUM_CPUS > 1
+	{
+		.reg_vals = &xtensa_gdb_reg_vals[1][0],
+	},
+#endif
+#if CONFIG_MP_NUM_CPUS > 2
+	{
+		.reg_vals = &xtensa_gdb_reg_vals[2][0],
+	},
+#endif
+#if CONFIG_MP_NUM_CPUS > 3
+	{
+		.reg_vals = &xtensa_gdb_reg_vals[3][0],
+	},
+#endif
 };
