@@ -11,6 +11,7 @@
 #define DT_DRV_COMPAT st_lsm6dso
 
 #include <zephyr/kernel.h>
+#include <zephyr/drivers/i3c.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/logging/log.h>
@@ -36,15 +37,24 @@ static int lsm6dso_enable_t_int(const struct device *dev, int enable)
 		lsm6dso_temperature_raw_get(ctx, &buf);
 	}
 
-	/* set interrupt (TEMP DRDY interrupt is only on INT2) */
-	if (cfg->int_pin == 1) {
+	/*
+	 * Set/Enable interrupt.
+	 *
+	 * Note that TEMP DRDY interrupt is only on INT2,
+	 * or when in I3C mode.
+	 */
+	if ((cfg->int_pin == 2)
+#if DT_ANY_INST_ON_BUS_STATUS_OKAY(i3c)
+	    || (cfg->on_i3c_bus)
+#endif
+	   ) {
+		lsm6dso_read_reg(ctx, LSM6DSO_INT2_CTRL, (uint8_t *)&int2_ctrl, 1);
+		int2_ctrl.int2_drdy_temp = enable;
+		return lsm6dso_write_reg(ctx, LSM6DSO_INT2_CTRL,
+					 (uint8_t *)&int2_ctrl, 1);
+	} else {
 		return -EIO;
 	}
-
-	lsm6dso_read_reg(ctx, LSM6DSO_INT2_CTRL, (uint8_t *)&int2_ctrl, 1);
-	int2_ctrl.int2_drdy_temp = enable;
-	return lsm6dso_write_reg(ctx, LSM6DSO_INT2_CTRL,
-				 (uint8_t *)&int2_ctrl, 1);
 }
 #endif
 
@@ -63,8 +73,16 @@ static int lsm6dso_enable_xl_int(const struct device *dev, int enable)
 		lsm6dso_acceleration_raw_get(ctx, buf);
 	}
 
-	/* set interrupt */
-	if (cfg->int_pin == 1) {
+	/*
+	 * Set/Enable interrupt.
+	 *
+	 * Note I3C IBI is enabled the same as INT1.
+	 */
+	if ((cfg->int_pin == 1)
+#if DT_ANY_INST_ON_BUS_STATUS_OKAY(i3c)
+	    || (cfg->on_i3c_bus)
+#endif
+	   ){
 		lsm6dso_int1_ctrl_t int1_ctrl;
 
 		lsm6dso_read_reg(ctx, LSM6DSO_INT1_CTRL,
@@ -99,8 +117,16 @@ static int lsm6dso_enable_g_int(const struct device *dev, int enable)
 		lsm6dso_angular_rate_raw_get(ctx, buf);
 	}
 
-	/* set interrupt */
-	if (cfg->int_pin == 1) {
+	/*
+	 * Set/Enable interrupt.
+	 *
+	 * Note I3C IBI is enabled the same as INT1.
+	 */
+	if ((cfg->int_pin == 1)
+#if DT_ANY_INST_ON_BUS_STATUS_OKAY(i3c)
+	    || (cfg->on_i3c_bus)
+#endif
+	   ){
 		lsm6dso_int1_ctrl_t int1_ctrl;
 
 		lsm6dso_read_reg(ctx, LSM6DSO_INT1_CTRL,
@@ -206,8 +232,27 @@ static void lsm6dso_handle_interrupt(const struct device *dev)
 #endif
 	}
 
+#if DT_ANY_INST_ON_BUS_STATUS_OKAY(i3c)
+	if (cfg->on_i3c_bus) {
+		/*
+		 * I3C IBI does not rely on GPIO.
+		 * So no need to enable GPIO pin for interrupt trigger.
+		 */
+		return;
+	}
+#endif
+
 	gpio_pin_interrupt_configure_dt(&cfg->gpio_drdy,
 					GPIO_INT_EDGE_TO_ACTIVE);
+}
+
+static void lsm6dso_intr_callback(struct lsm6dso_data *lsm6dso)
+{
+#if defined(CONFIG_LSM6DSO_TRIGGER_OWN_THREAD)
+	k_sem_give(&lsm6dso->intr_sem);
+#elif defined(CONFIG_LSM6DSO_TRIGGER_GLOBAL_THREAD)
+	k_work_submit(&lsm6dso->work);
+#endif /* CONFIG_LSM6DSO_TRIGGER_OWN_THREAD */
 }
 
 static void lsm6dso_gpio_callback(const struct device *dev,
@@ -221,18 +266,14 @@ static void lsm6dso_gpio_callback(const struct device *dev,
 
 	gpio_pin_interrupt_configure_dt(&cfg->gpio_drdy, GPIO_INT_DISABLE);
 
-#if defined(CONFIG_LSM6DSO_TRIGGER_OWN_THREAD)
-	k_sem_give(&lsm6dso->gpio_sem);
-#elif defined(CONFIG_LSM6DSO_TRIGGER_GLOBAL_THREAD)
-	k_work_submit(&lsm6dso->work);
-#endif /* CONFIG_LSM6DSO_TRIGGER_OWN_THREAD */
+	lsm6dso_intr_callback(lsm6dso);
 }
 
 #ifdef CONFIG_LSM6DSO_TRIGGER_OWN_THREAD
 static void lsm6dso_thread(struct lsm6dso_data *lsm6dso)
 {
 	while (1) {
-		k_sem_take(&lsm6dso->gpio_sem, K_FOREVER);
+		k_sem_take(&lsm6dso->intr_sem, K_FOREVER);
 		lsm6dso_handle_interrupt(lsm6dso->dev);
 	}
 }
@@ -248,21 +289,42 @@ static void lsm6dso_work_cb(struct k_work *work)
 }
 #endif /* CONFIG_LSM6DSO_TRIGGER_GLOBAL_THREAD */
 
+#if DT_ANY_INST_ON_BUS_STATUS_OKAY(i3c)
+static int lsm6dso_ibi_cb(struct i3c_device_desc *target,
+			  struct i3c_ibi_payload *payload)
+{
+	const struct device *dev = target->dev;
+	struct lsm6dso_data *lsm6dso = dev->data;
+
+	ARG_UNUSED(payload);
+
+	lsm6dso_intr_callback(lsm6dso);
+
+	return 0;
+}
+#endif
+
 int lsm6dso_init_interrupt(const struct device *dev)
 {
 	struct lsm6dso_data *lsm6dso = dev->data;
 	const struct lsm6dso_config *cfg = dev->config;
 	stmdev_ctx_t *ctx = (stmdev_ctx_t *)&cfg->ctx;
-	int ret;
 
-	/* setup data ready gpio interrupt (INT1 or INT2) */
-	if (!device_is_ready(cfg->gpio_drdy.port)) {
+	/*
+	 * Setup data ready gpio interrupt (INT1 or INT2).
+	 * I3C IBI does not utilize GPIO for interrupts.
+	 */
+	if ((!device_is_ready(cfg->gpio_drdy.port))
+#if DT_ANY_INST_ON_BUS_STATUS_OKAY(i3c)
+	    && !cfg->on_i3c_bus
+#endif
+	   ) {
 		LOG_ERR("Cannot get pointer to drdy_gpio device");
 		return -EINVAL;
 	}
 
 #if defined(CONFIG_LSM6DSO_TRIGGER_OWN_THREAD)
-	k_sem_init(&lsm6dso->gpio_sem, 0, K_SEM_MAX_LIMIT);
+	k_sem_init(&lsm6dso->intr_sem, 0, K_SEM_MAX_LIMIT);
 
 	k_thread_create(&lsm6dso->thread, lsm6dso->thread_stack,
 			CONFIG_LSM6DSO_THREAD_STACK_SIZE,
@@ -273,19 +335,26 @@ int lsm6dso_init_interrupt(const struct device *dev)
 	lsm6dso->work.handler = lsm6dso_work_cb;
 #endif /* CONFIG_LSM6DSO_TRIGGER_OWN_THREAD */
 
-	ret = gpio_pin_configure_dt(&cfg->gpio_drdy, GPIO_INPUT);
-	if (ret < 0) {
-		LOG_DBG("Could not configure gpio");
-		return ret;
-	}
+#if DT_ANY_INST_ON_BUS_STATUS_OKAY(i3c)
+	if (!cfg->on_i3c_bus)
+#endif
+	{
+		int ret;
 
-	gpio_init_callback(&lsm6dso->gpio_cb,
-			   lsm6dso_gpio_callback,
-			   BIT(cfg->gpio_drdy.pin));
+		ret = gpio_pin_configure_dt(&cfg->gpio_drdy, GPIO_INPUT);
+		if (ret < 0) {
+			LOG_DBG("Could not configure gpio");
+			return ret;
+		}
 
-	if (gpio_add_callback(cfg->gpio_drdy.port, &lsm6dso->gpio_cb) < 0) {
-		LOG_DBG("Could not set gpio callback");
-		return -EIO;
+		gpio_init_callback(&lsm6dso->gpio_cb,
+				   lsm6dso_gpio_callback,
+				   BIT(cfg->gpio_drdy.pin));
+
+		if (gpio_add_callback(cfg->gpio_drdy.port, &lsm6dso->gpio_cb) < 0) {
+			LOG_DBG("Could not set gpio callback");
+			return -EIO;
+		}
 	}
 
 	/* enable interrupt on int1/int2 in pulse mode */
@@ -293,6 +362,20 @@ int lsm6dso_init_interrupt(const struct device *dev)
 		LOG_DBG("Could not set pulse mode");
 		return -EIO;
 	}
+
+#if DT_ANY_INST_ON_BUS_STATUS_OKAY(i3c)
+	if (cfg->on_i3c_bus) {
+		/* I3C IBI does not utilize GPIO interrupt. */
+		lsm6dso->i3c.ibi_cb = lsm6dso_ibi_cb;
+
+		if (i3c_ibi_enable(&lsm6dso->i3c) != 0U) {
+			LOG_DBG("Could not enable I3C IBI");
+			return -EIO;
+		}
+
+		return 0;
+	}
+#endif
 
 	return gpio_pin_interrupt_configure_dt(&cfg->gpio_drdy,
 					       GPIO_INT_EDGE_TO_ACTIVE);
