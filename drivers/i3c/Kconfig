@@ -130,4 +130,6 @@ comment "Device Drivers"
 
 rsource "Kconfig.i2c_virtual_controller"
 
+rsource "Kconfig.nxp"
+
 endif # I3C

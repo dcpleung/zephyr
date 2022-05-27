@@ -23,3 +23,8 @@ zephyr_library_sources_ifdef(
   CONFIG_I3C_I2C_VIRTUAL_CONTROLLER
   i3c_i2c_virtual_controller.c
 )
+
+zephyr_library_sources_ifdef(
+  CONFIG_I3C_MCUX
+  i3c_mcux.c
+)
