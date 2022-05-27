@@ -8,6 +8,7 @@ menuconfig LSM6DSO
 	default y
 	depends on DT_HAS_ST_LSM6DSO_ENABLED
 	select I2C if $(dt_compat_on_bus,$(DT_COMPAT_ST_LSM6DSO),i2c)
+	select I3C if $(dt_compat_on_bus,$(DT_COMPAT_ST_LSM6DSO),i3c)
 	select SPI if $(dt_compat_on_bus,$(DT_COMPAT_ST_LSM6DSO),spi)
 	select HAS_STMEMSC
 	select USE_STDC_LSM6DSO
@@ -39,6 +40,7 @@ endchoice
 
 config LSM6DSO_TRIGGER
 	bool
+	select I3C_USE_IBI if I3C
 
 if LSM6DSO_TRIGGER
 
