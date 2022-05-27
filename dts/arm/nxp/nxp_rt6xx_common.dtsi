@@ -432,6 +432,30 @@
 		prescale = <0>;
 		label = "CTIMER_4";
 	};
+
+	i3c0: i3c@36000 {
+		compatible = "nxp,mcux-i3c";
+		reg = <0x36000 0x1000>;
+		interrupts = <49 0>;
+		clocks = <&clkctl1 MCUX_I3C_CLK>;
+		clk-divider = <2>;
+		clk-divider-slow = <1>;
+		clk-divider-tc = <1>;
+		status = "disabled";
+		#address-cells = <3>;
+		#size-cells = <0>;
+
+		i3c0_i2c_ctrl: i3c_i2c_ctrl@ff0000000000000000 {
+			compatible = "virtual,i3c-i2c-controller";
+			reg = <0xff 0x00 0x00>;
+			lvr = <0x50>;
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			status = "disabled";
+		};
+	};
 };
 
 &flexspi {
