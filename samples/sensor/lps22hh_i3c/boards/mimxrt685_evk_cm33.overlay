@@ -14,17 +14,17 @@
 	clk-divider = <8>;
 	clk-divider-slow = <1>;
 	clk-divider-tc = <1>;
+};
 
-	lps22hh0: lps22hh@5d0000020800b30000 {
+&i3c0_i2c_ctrl {
+	status = "okay";
+
+	lps22hh0: lps22hh@5d {
 		compatible = "st,lps22hh";
-		reg = <0x5d 0x0208 0x00b30000>;
+		reg = <0x5d>;
 
 //		odr = <7>;
 
 		status = "okay";
 	};
-};
-
-&i3c0_i2c_ctrl {
-	status = "okay";
 };

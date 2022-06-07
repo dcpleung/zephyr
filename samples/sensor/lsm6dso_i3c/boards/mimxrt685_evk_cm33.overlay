@@ -14,17 +14,17 @@
 	clk-divider = <12>;
 	clk-divider-slow = <1>;
 	clk-divider-tc = <1>;
+};
 
-	lsm6dso0: lsm6dso@6b00000208006c100b {
+&i3c0_i2c_ctrl {
+	status = "okay";
+
+	lsm6dso0: lsm6dso@6b {
 		compatible = "st,lsm6dso";
-		reg = <0x6b 0x0208 0x006c100b>;
+		reg = <0x6b>;
 
 		status = "okay";
 
 //		assigned-address = <0x42>;
 	};
-};
-
-&i3c0_i2c_ctrl {
-	status = "okay";
 };
