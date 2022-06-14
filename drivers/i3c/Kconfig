@@ -91,4 +91,6 @@ config I3C_BUS_INIT_PRIORITY
 
 comment "Device Drivers"
 
+rsource "Kconfig.i2c_virtual_controller"
+
 endif # I3C

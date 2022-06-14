@@ -1,0 +1,13 @@
+# Copyright (c) 2022 Intel Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+
+DT_COMPAT_I2C_VIRTUAL_CONTROLLER := virtual,i3c-i2c-controller
+
+config I3C_I2C_VIRTUAL_CONTROLLER
+	bool "I2C Virtual Bridge"
+	default $(dt_compat_enabled,$(DT_COMPAT_I2C_VIRTUAL_CONTROLLER))
+	help
+	  Enable the I2C virtual controller driver to allow device drivers
+	  using I2C to be interfaced with the I3C controller without
+	  changes.
