@@ -24,7 +24,7 @@ config I3C_USE_GROUP_ADDR
 
 	  Says Y if unsure.
 
-config I3C_USE_IBI
+menuconfig I3C_USE_IBI
 	bool "Use In-Band Interrupt (IBI)"
 	default y
 	help
@@ -32,12 +32,15 @@ config I3C_USE_IBI
 
 	  Says Y if unsure.
 
+if I3C_USE_IBI
+
 config I3C_IBI_MAX_PAYLOAD_SIZE
 	int "Maximum IBI Payload Size"
-	depends on I3C_USE_IBI
 	default 16
 	help
 	  Maxmium IBI payload size.
+
+endif # I3C_USE_IBI
 
 comment "Initialization Priority"
 

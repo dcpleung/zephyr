@@ -486,6 +486,7 @@ struct i3c_config_custom {
  */
 struct i3c_device_desc;
 struct i3c_i2c_device_desc;
+struct i3c_target_config;
 
 __subsystem struct i3c_driver_api {
 	/**
@@ -673,6 +674,42 @@ __subsystem struct i3c_driver_api {
 	 */
 	int (*ibi_disable)(const struct device *dev,
 			   struct i3c_device_desc *target);
+
+	/**
+	 * Register config as target device of a controller.
+	 *
+	 * This tells the controller to act as a target device
+	 * on the I3C bus.
+	 *
+	 * Target device only API.
+	 *
+	 * @see i3c_target_register
+	 *
+	 * @param dev Pointer to the controller device driver instance.
+	 * @param cfg I3C target device configuration
+	 *
+	 * @return @see i3c_target_register
+	 */
+	int (*target_register)(const struct device *dev,
+			       struct i3c_target_config *cfg);
+
+	/**
+	 * Unregister config as target device of a controller.
+	 *
+	 * This tells the controller to stop acting as a target device
+	 * on the I3C bus.
+	 *
+	 * Target device only API.
+	 *
+	 * @see i3c_target_unregister
+	 *
+	 * @param dev Pointer to the controller device driver instance.
+	 * @param cfg I3C target device configuration
+	 *
+	 * @return @see i3c_target_unregister
+	 */
+	int (*target_unregister)(const struct device *dev,
+				 struct i3c_target_config *cfg);
 };
 
 /**
@@ -2253,6 +2290,209 @@ int i3c_bus_init(const struct device *dev, struct i3c_dev_list *i3c_dev_list);
  * @retval -EIO General Input/Output error.
  */
 int i3c_device_basic_info_get(struct i3c_device_desc *target);
+
+struct i3c_target_callbacks {
+	/**
+	 * @brief Function called when a write to the device is initiated.
+	 *
+	 * This function is invoked by the controller when the bus completes
+	 * a start condition for a write operation to the address associated
+	 * with a particular device.
+	 *
+	 * A success return shall cause the controller to ACK the next byte
+	 * received. An error return shall cause the controller to NACK the
+	 * next byte received.
+	 *
+	 * @param config Configuration structure associated with the
+	 *               device to which the operation is addressed.
+	 *
+	 * @return 0 if the write is accepted, or a negative error code.
+	 */
+	int (*write_requested_cb)(struct i3c_target_config *config);
+
+	/**
+	 * @brief Function called when a write to the device is continued.
+	 *
+	 * This function is invoked by the controller when it completes
+	 * reception of a byte of data in an ongoing write operation to the
+	 * device.
+	 *
+	 * A success return shall cause the controller to ACK the next byte
+	 * received. An error return shall cause the controller to NACK the
+	 * next byte received.
+	 *
+	 * @param config Configuration structure associated with the
+	 *               device to which the operation is addressed.
+	 *
+	 * @param val the byte received by the controller.
+	 *
+	 * @return 0 if more data can be accepted, or a negative error
+	 *         code.
+	 */
+	int (*write_received_cb)(struct i3c_target_config *config,
+				 uint8_t val);
+
+	/**
+	 * @brief Function called when a read from the device is initiated.
+	 *
+	 * This function is invoked by the controller when the bus completes a
+	 * start condition for a read operation from the address associated
+	 * with a particular device.
+	 *
+	 * The value returned in @p val will be transmitted. A success
+	 * return shall cause the controller to react to additional read
+	 * operations. An error return shall cause the controller to ignore
+	 * bus operations until a new start condition is received.
+	 *
+	 * @param config Configuration structure associated with the
+	 *               device to which the operation is addressed.
+	 *
+	 * @param val Pointer to storage for the first byte of data to return
+	 *            for the read request.
+	 *
+	 * @return 0 if more data can be requested, or a negative error code.
+	 */
+	int (*read_requested_cb)(struct i3c_target_config *config,
+				 uint8_t *val);
+
+	/**
+	 * @brief Function called when a read from the device is continued.
+	 *
+	 * This function is invoked by the controller when the bus is ready to
+	 * provide additional data for a read operation from the address
+	 * associated with the device device.
+	 *
+	 * The value returned in @p val will be transmitted. A success
+	 * return shall cause the controller to react to additional read
+	 * operations. An error return shall cause the controller to ignore
+	 * bus operations until a new start condition is received.
+	 *
+	 * @param config Configuration structure associated with the
+	 *               device to which the operation is addressed.
+	 *
+	 * @param val Pointer to storage for the next byte of data to return
+	 *            for the read request.
+	 *
+	 * @return 0 if data has been provided, or a negative error code.
+	 */
+	int (*read_processed_cb)(struct i3c_target_config *config,
+				 uint8_t *val);
+
+	/**
+	 * @brief Function called when a stop condition is observed after a
+	 * start condition addressed to a particular device.
+	 *
+	 * This function is invoked by the controller when the bus is ready to
+	 * provide additional data for a read operation from the address
+	 * associated with the device device. After the function returns the
+	 * controller shall enter a state where it is ready to react to new
+	 * start conditions.
+	 *
+	 * @param config Configuration structure associated with the
+	 *               device to which the operation is addressed.
+	 *
+	 * @return Ignored.
+	 */
+	int (*stop_cb)(struct i3c_target_config *config);
+};
+
+/**
+ * @brief Structure describing a device that supports the I3C target API.
+ *
+ * Instances of this are passed to the i3c_target_register() and
+ * i3c_target_unregister() functions to indicate addition and removal
+ * of a target device, respective.
+ *
+ * Fields other than @c node must be initialized by the module that
+ * implements the device behavior prior to passing the object
+ * reference to i3c_target_register().
+ */
+struct i3c_target_config {
+	/** Private, do not modify */
+	sys_snode_t node;
+
+	/**
+	 * Flags for the target device defined by I3C_TARGET_FLAGS_*
+	 * constants.
+	 */
+	uint8_t flags;
+
+	/** Address for this target device */
+	uint8_t address;
+
+	/** Callback functions */
+	const struct i3c_target_callbacks *callbacks;
+};
+
+struct i3c_target_driver_api {
+	int (*driver_register)(const struct device *dev);
+	int (*driver_unregister)(const struct device *dev);
+};
+
+/**
+ * @brief Registers the provided config as target device of a controller.
+ *
+ * Enable I3C target mode for the @p dev I3C bus driver using the provided
+ * config struct (@p cfg) containing the functions and parameters to send bus
+ * events. The I3C target will be registered at the address provided as
+ * @ref i3c_target_config.address struct member. Any I3C bus events related
+ * to the target mode will be passed onto I3C target device driver via a set of
+ * callback functions provided in the 'callbacks' struct member.
+ *
+ * Most of the existing hardware allows simultaneous support for master
+ * and target mode. This is however not guaranteed.
+ *
+ * @param dev Pointer to the device structure for an I3C controller
+ *            driver configured in target mode.
+ * @param cfg Config struct with functions and parameters used by
+ *            the I3C target driver to send bus events
+ *
+ * @retval 0 Is successful
+ * @retval -EINVAL If parameters are invalid
+ * @retval -EIO General input / output error.
+ * @retval -ENOSYS If target mode is not implemented
+ */
+static inline int i3c_target_register(const struct device *dev,
+				      struct i3c_target_config *cfg)
+{
+	const struct i3c_driver_api *api =
+		(const struct i3c_driver_api *)dev->api;
+
+	if (api->target_register == NULL) {
+		return -ENOSYS;
+	}
+
+	return api->target_register(dev, cfg);
+}
+
+/**
+ * @brief Unregisters the provided config as target device
+ *
+ * This routine disables I3C target mode for the @p dev I3C bus driver using
+ * the provided config struct (@p cfg) containing the functions and parameters
+ * to send bus events.
+ *
+ * @param dev Pointer to the device structure for an I3C controller
+ *            driver configured in target mode.
+ * @param cfg Config struct with functions and parameters used by
+ *            the I3C target driver to send bus events
+ *
+ * @retval 0 Is successful
+ * @retval -EINVAL If parameters are invalid
+ * @retval -ENOSYS If target mode is not implemented
+ */
+static inline int i3c_target_unregister(const struct device *dev,
+					struct i3c_target_config *cfg)
+{
+	const struct i3c_driver_api *api =
+		(const struct i3c_driver_api *)dev->api;
+
+	if (api->target_unregister == NULL) {
+		return -ENOSYS;
+	}
+
+	return api->target_unregister(dev, cfg);
+}
 
 #ifdef __cplusplus
 }
