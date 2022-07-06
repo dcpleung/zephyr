@@ -1952,6 +1952,15 @@ static int mcux_i3c_configure(const struct device *dev,
 	ctrl_config_hal->baudRate_Hz.i2cBaud = ctrl_cfg->scl.i2c;
 	ctrl_config_hal->baudRate_Hz.i3cPushPullBaud = ctrl_cfg->scl.i3c;
 
+#if 0
+	ctrl_config.enableOpenDrainStop = false;
+	ctrl_config.baudRate_Hz.i2cBaud = 400000U;
+	ctrl_config.baudRate_Hz.i3cOpenDrainBaud = 400000U;
+	ctrl_config.baudRate_Hz.i3cPushPullBaud = 1000000U;
+	ctrl_config.disableTimeout = true;
+	ctrl_config.hKeep = kI3C_MasterPassiveSDA;
+#endif
+
 	/* Initialize hardware */
 	I3C_MasterInit(base, ctrl_config_hal, clock_freq);
 
@@ -2006,6 +2015,9 @@ out_configure:
 static int mcux_i3c_bus_init(const struct device *dev)
 {
 	struct mcux_i3c_data *data = dev->data;
+
+//	volatile int tmp = 1;
+//	while (tmp == 1);
 
 	return i3c_bus_init(dev, &data->device_list);
 }
