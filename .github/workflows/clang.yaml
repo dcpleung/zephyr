@@ -64,6 +64,16 @@ jobs:
           # and start over. (Workaround until we implement more robust module
           # west caching).
           west update --path-cache /github/cache/zephyrproject 2>&1 1> west.log || west update --path-cache /github/cache/zephyrproject 2>&1 1> west2.log || ( rm -rf ../modules ../bootloader ../tools && west update --path-cache /github/cache/zephyrproject)
+          # This is to make ld.lld appears on $PATH, and this is needed
+          # if binutils' ld is to be used for linker. Without ld.lld
+          # in $PATH, clang would complain that it cannot find `ld`.
+          #
+          # Note that this is because the package lld-15 does not
+          # install the symlink in /usr/bin/ld.lld. The lld package
+          # provided by Ubuntu 20.04 (used by CI) would pull in
+          # llvm/clang version 10 and would symlink to that instead.
+          # And Ubuntu 22.04 would also need this workaround.
+          export PATH=${PATH}:${LLVM_TOOLCHAIN_PATH}/bin
 
       - name: Check Environment
         run: |
