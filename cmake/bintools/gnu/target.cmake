@@ -30,5 +30,7 @@ if(NOT CMAKE_GDB OR GDB_CFG_ERR)
   endif()
 endif()
 
+include(${ZEPHYR_BASE}/cmake/bintools/gnu/ld_version.cmake)
+
 # Include bin tool properties
 include(${ZEPHYR_BASE}/cmake/bintools/gnu/target_bintools.cmake)
