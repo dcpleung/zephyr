@@ -13,11 +13,9 @@ macro(toolchain_ld_baremetal)
   )
 
   # Force LLVM to use built-in lld linker
-  if(NOT CONFIG_LLVM_USE_LD)
-    zephyr_ld_options(
-      -fuse-ld=lld
+  zephyr_ld_options(
+    -fuse-ld=lld
   )
-  endif()
 
   # Funny thing is if this is set to =error, some architectures will
   # skip this flag even though the compiler flag check passes

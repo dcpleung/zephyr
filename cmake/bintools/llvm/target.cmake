@@ -28,7 +28,7 @@ find_program(CMAKE_OBJCOPY NAMES
                            ${find_program_binutils_args})
 find_program(CMAKE_READELF readelf      ${find_program_binutils_args})
 
-if(CONFIG_LLVM_USE_LD)
+if(NOT CONFIG_LLVM_USE_LLD)
   include(${ZEPHYR_BASE}/cmake/bintools/gnu/ld_version.cmake)
 endif()
 

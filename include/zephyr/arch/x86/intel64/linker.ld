@@ -228,7 +228,7 @@ SECTIONS
  * The sections below are still treated as warnings
  * with "--orphan-handling=warn" by LLVM lld.
  */
-#if !defined(CONFIG_LLVM_USE_LD)
+#if defined(CONFIG_LLVM_USE_LLD)
 	.symtab 0 : { *(.symtab) }
 	.strtab 0 : { *(.strtab) }
 	.shstrtab 0 : { *(.shstrtab) }

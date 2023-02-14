@@ -318,7 +318,7 @@ SECTIONS
  * will be removed with "--gc-sections" by LLVM lld, so add keep
  * command to save them.
  */
-#ifndef CONFIG_LLVM_USE_LD
+#ifdef CONFIG_LLVM_USE_LLD
 	KEEP(*(.text.irqstubs))
 	KEEP(*(".gnu.linkonce.t.exc_*_stub"))
 #endif
@@ -552,7 +552,7 @@ SECTIONS
  * The sections below are still treated as warnings
  * with "--orphan-handling=warn" by LLVM lld.
  */
-#if !defined(CONFIG_LLVM_USE_LD)
+#if defined(CONFIG_LLVM_USE_LLD)
 	.symtab 0 : { *(.symtab) }
 	.strtab 0 : { *(.strtab) }
 	.shstrtab 0 : { *(.shstrtab) }

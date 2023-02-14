@@ -11,10 +11,10 @@ endif()
 set(LLVM_TOOLCHAIN_PATH ${CLANG_ROOT_DIR} CACHE PATH "clang install directory")
 
 set(COMPILER clang)
-if(CONFIG_LLVM_USE_LD)
-  set(LINKER ld)
-else()
+if(CONFIG_LLVM_USE_LLD)
   set(LINKER lld)
+else()
+  set(LINKER ld)
 endif()
 set(BINTOOLS llvm)
 

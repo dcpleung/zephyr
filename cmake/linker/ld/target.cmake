@@ -1,15 +1,22 @@
 # SPDX-License-Identifier: Apache-2.0
 set_property(TARGET linker PROPERTY devices_start_symbol "__device_start")
 
-if(DEFINED TOOLCHAIN_HOME)
-  # When Toolchain home is defined, then we are cross-compiling, so only look
-  # for linker in that path, else we are using host tools.
-  set(LD_SEARCH_PATH PATHS ${TOOLCHAIN_HOME} NO_DEFAULT_PATH)
-endif()
+# See if the compiler has a preferred linker
+execute_process(COMMAND ${CMAKE_C_COMPILER} --print-prog-name=ld.bfd
+                OUTPUT_VARIABLE CMAKE_LINKER
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-find_program(CMAKE_LINKER ${CROSS_COMPILE}ld.bfd ${LD_SEARCH_PATH})
 if(NOT CMAKE_LINKER)
-  find_program(CMAKE_LINKER ${CROSS_COMPILE}ld ${LD_SEARCH_PATH})
+  if(DEFINED TOOLCHAIN_HOME)
+    # When Toolchain home is defined, then we are cross-compiling, so only look
+    # for linker in that path, else we are using host tools.
+    set(LD_SEARCH_PATH PATHS ${TOOLCHAIN_HOME} NO_DEFAULT_PATH)
+  endif()
+
+  find_program(CMAKE_LINKER ${CROSS_COMPILE}ld.bfd ${LD_SEARCH_PATH})
+  if(NOT CMAKE_LINKER)
+    find_program(CMAKE_LINKER ${CROSS_COMPILE}ld ${LD_SEARCH_PATH})
+  endif()
 endif()
 
 set_ifndef(LINKERFLAGPREFIX -Wl)
@@ -121,7 +128,7 @@ function(toolchain_ld_link_elf)
     ${ARGN}                                                   # input args to parse
   )
 
-  if(${CMAKE_LINKER} STREQUAL "${CROSS_COMPILE}ld.bfd")
+  if(${CMAKE_LINKER} MATCHES "${CROSS_COMPILE}ld.bfd$")
     # ld.bfd was found so let's explicitly use that for linking, see #32237
     set(use_linker "-fuse-ld=bfd")
   endif()
