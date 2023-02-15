@@ -35,6 +35,8 @@ extern "C" {
  * z_x86_syscall_entry_stub in userspace.S
  */
 
+#ifndef CONFIG_SYSCALL_USE_HELPERS
+
 __pinned_func
 static inline uintptr_t arch_syscall_invoke6(uintptr_t arg1, uintptr_t arg2,
 					     uintptr_t arg3, uintptr_t arg4,
@@ -140,6 +142,8 @@ static inline uintptr_t arch_syscall_invoke0(uintptr_t call_id)
 			 );
 	return ret;
 }
+
+#endif /* CONFIG_SYSCALL_USE_HELPERS */
 
 __pinned_func
 static inline bool arch_is_user_context(void)

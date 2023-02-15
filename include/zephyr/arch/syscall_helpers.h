@@ -92,6 +92,10 @@ uintptr_t arch_syscall_invoke0(uintptr_t call_id)
 	return arch_syscall_invoke0_helper(call_id);
 }
 
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* _ASMLANGUAGE */
 #endif /* CONFIG_USERSPACE */
 #endif /* ZEPHYR_INCLUDE_ARCH_SYSCALL_HELPERS_H_ */
