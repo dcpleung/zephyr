@@ -13,3 +13,9 @@ check_set_linker_property(TARGET linker PROPERTY memusage)
 # Linker flag for disabling position independent binaries,
 # such as, "-no-pie" for LD, and "--no-pie" for LLD.
 set_property(TARGET linker PROPERTY no_position_independent)
+
+# Linker flag to skip warning if a LOAD segment has RWX permissions
+set_property(TARGET linker PROPERTY no_warn_rwx_segments)
+
+# Linker flags to skip warning if stack is executable
+set_property(TARGET linker PROPERTY no_warn_execstack)
