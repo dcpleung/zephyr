@@ -952,3 +952,9 @@ config TOOLCHAIN_HAS_BUILTIN_FFS
 	default y if !(64BIT && RISCV)
 	help
 	  Hidden option to signal that toolchain has __builtin_ffs*().
+
+config SYSCALL_USE_HELPERS
+	bool
+	help
+	  Use syscall helpers where the syscalls are done via function calls
+	  instead of inline functions.

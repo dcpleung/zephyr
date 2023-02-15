@@ -9,6 +9,10 @@
 #ifndef ZEPHYR_INCLUDE_ARCH_SYSCALL_H_
 #define ZEPHYR_INCLUDE_ARCH_SYSCALL_H_
 
+#if defined(CONFIG_SYSCALL_USE_HELPERS)
+#include <zephyr/arch/syscall_helpers.h>
+#endif
+
 #if defined(CONFIG_X86)
 #if defined(CONFIG_X86_64)
 #include <zephyr/arch/x86/intel64/syscall.h>
