@@ -46,6 +46,7 @@ class XtensaToolchain(Enum):
     ZEPHYR = 1
     XCC = 2
     ESPRESSIF = 3
+    XT_CLANG = 4
 
 
 def get_gdb_reg_definition(soc, toolchain):
@@ -62,6 +63,8 @@ def get_gdb_reg_definition(soc, toolchain):
             logger.error("Can't use espressif toolchain with CAVS. " +
                 "Use zephyr or xcc instead. Exiting...")
             sys.exit(1)
+        elif toolchain == XtensaToolchain.XT_CLANG:
+            return GdbRegDef_Intel_Adsp_CAVS_XCC
         else:
             raise NotImplementedError
     elif soc == XtensaSoc.ESP32S2:
