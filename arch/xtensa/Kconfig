@@ -20,6 +20,20 @@ config XTENSA_WINDOWED_ABI
 	help
 	  Use Windowed ABI.
 
+config XTENSA_CALL0_ABI
+	bool "Call0 ABI"
+	help
+	  When selected, all code will be built to use the CALL0 ABI
+	  instead of register windows (though the context management
+	  code will still exploit the extra registers for faster
+	  interrupt/exception handling -- this does not build a Zephyr
+	  to run on hardware that truly lacks register windows).  This
+	  is required for userspace, as exception handling across a
+	  priviledge boundary must be able to spill the full context.
+	  For other systems, it improves context switch speed and
+	  stack usage at the expense of somewhat higher code size and
+	  execution time for function calls.
+
 endchoice
 
 config SIMULATOR_XTENSA
