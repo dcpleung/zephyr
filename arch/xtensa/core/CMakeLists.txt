@@ -18,6 +18,11 @@ if(CONFIG_XTENSA_WINDOWED_ABI)
     windowed/window_vectors.S
     windowed/xtensa_asm2_util.S
   )
+elseif(CONFIG_XTENSA_CALL0_ABI)
+  zephyr_library_sources(
+    call0/xtensa_win0.S
+    call0/xtensa_win0.c
+  )
 endif()
 
 zephyr_library_sources_ifdef(CONFIG_XTENSA_USE_CORE_CRT1 crt1.S)
