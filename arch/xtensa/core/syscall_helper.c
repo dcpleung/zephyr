@@ -11,6 +11,24 @@ uintptr_t xtensa_syscall_helper(uintptr_t arg1, uintptr_t arg2,
 				uintptr_t arg5, uintptr_t arg6,
 				uintptr_t call_id)
 {
+#ifdef CONFIG_XTENSA_CALL0_ABI
+	register uintptr_t a11 __asm__("%a11") = call_id;
+	register uintptr_t a2 __asm__("%a2") = arg1;
+	register uintptr_t a3 __asm__("%a3") = arg2;
+	register uintptr_t a4 __asm__("%a4") = arg3;
+	register uintptr_t a5 __asm__("%a5") = arg4;
+	register uintptr_t a6 __asm__("%a6") = arg5;
+	register uintptr_t a7 __asm__("%a7") = arg6;
+
+	__asm__ volatile("syscall\n\t"
+			 : "=r" (a2)
+			 : "r" (a2), "r" (a3), "r" (a4),
+			   "r" (a5), "r" (a6), "r" (a7),
+			   "r" (a11)
+			 : "memory");
+
+	return a2;
+#else /* CONFIG_XTENSA_CALL0_ABI */
 	register uintptr_t a2 __asm__("%a2") = call_id;
 	register uintptr_t a6 __asm__("%a6") = arg1;
 	register uintptr_t a3 __asm__("%a3") = arg2;
@@ -26,4 +44,5 @@ uintptr_t xtensa_syscall_helper(uintptr_t arg1, uintptr_t arg2,
 			 : "memory");
 
 	return a2;
+#endif /* CONFIG_XTENSA_CALL0_ABI */
 }
