@@ -471,3 +471,90 @@ xtensa_switch:
 	s32i a4, a3, 0 /* store switch handle */
 	mov a3, a2
 	j restore
+
+#ifdef CONFIG_USERSPACE
+/* FUNC_NORETURN void z_xtensa_userspace_enter(k_thread_entry_t user_entry,
+ *                                         void *p1, void *p2, void *p3,
+ *                                         uint32_t stack_end,
+ *                                         uint32_t stack_start)
+ *
+ * A one-way trip to userspace.
+ */
+.global z_xtensa_userspace_enter
+.type z_xtensa_userspace_enter, @function
+.align 4
+z_xtensa_userspace_enter:
+	/* Prevent interrupts while we juggle various registers
+	 * so they won't be overwritten.
+	 */
+	movi a0, PS_UM|PS_INTLEVEL(XCHAL_NMILEVEL)
+	wsr a0, PS
+	rsync
+
+	/* Need to stash function arguments (p1, p2 and p3), return address
+	 * and return PS into thread context as we cannot use ZSR_EPC, ZSR_EPS
+	 * at this point as any interrupts will wipe these.
+	 */
+	rsr a0, ZSR_CPU
+	l32i a0, a0, ___cpu_t_current_OFFSET
+	addi a0, a0, ___thread_t_arch_OFFSET
+
+	/* user_entry to exception return PC */
+	s32i a2, a0, __xtensa_win0_ctx_t_pc_OFFSET
+
+	/* PS for userspace */
+	movi a2, PS_WOE|PS_UM|PS_RING(2)
+	s32i a2, a0, __xtensa_win0_ctx_t_ps_OFFSET
+
+	/* Stash p1, p2, and p3.
+	 * Incoming are a3, a4, and a5 as in func(entry, p1, p2, p3, ...)
+	 * but outgoing are a2, a3, and a4 as in func(p1, p2, p3).
+	 */
+	s32i a3, a0, __xtensa_win0_ctx_t_a2_OFFSET
+	s32i a4, a0, __xtensa_win0_ctx_t_a3_OFFSET
+	s32i a5, a0, __xtensa_win0_ctx_t_a4_OFFSET
+
+	/* Temporarily stash the user stack pointer (stack_end) too. */
+	s32i a6, a0, __xtensa_win0_ctx_t_a5_OFFSET
+
+	/* Setup stack permissions so we can access user stack. */
+	rsr a2, ZSR_CPU
+	l32i a2, a2, ___cpu_t_current_OFFSET
+	call0 xtensa_user_stack_perms
+
+	/* Swap page tables to those of this user thread. */
+	rsr a2, ZSR_CPU
+	l32i a2, a2, ___cpu_t_current_OFFSET
+	call0 z_xtensa_swap_update_page_tables
+
+	/* Set THREADPTR to thread address */
+	rsr a2, ZSR_CPU
+	l32i a2, a2, ___cpu_t_current_OFFSET
+	wur.THREADPTR a2
+
+	/* Now we restore function arguments, return address and return PS. */
+	rsr a0, ZSR_CPU
+	l32i a0, a0, ___cpu_t_current_OFFSET
+	addi a0, a0, ___thread_t_arch_OFFSET
+
+	/* Switch stack from stack_end (stashed in ctx A5 above). */
+	l32i a1, a0, __xtensa_win0_ctx_t_a5_OFFSET
+
+	/* Restore return address and return PS, via A2. */
+	l32i a2, a0, __xtensa_win0_ctx_t_pc_OFFSET
+	wsr a2, ZSR_EPC
+	l32i a2, a0, __xtensa_win0_ctx_t_ps_OFFSET
+	wsr a2, ZSR_EPS
+
+	/* Restore arguments for user_entry(p1, p2, p3). */
+	l32i a2, a0, __xtensa_win0_ctx_t_a2_OFFSET
+	l32i a3, a0, __xtensa_win0_ctx_t_a3_OFFSET
+	l32i a4, a0, __xtensa_win0_ctx_t_a4_OFFSET
+
+	/* Clear out return address... just in case */
+	movi a0, 0
+
+	rsync
+
+	rfi ZSR_RFI_LEVEL
+#endif /* CONFIG_USERSPACE */

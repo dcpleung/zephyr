@@ -117,7 +117,22 @@ void arch_new_thread(struct k_thread *thread, k_thread_stack_t *stack,
 #endif
 
 	memset(&thread->arch.ctx, 0, sizeof(thread->arch.ctx));
-	thread->arch.ctx.pc = (uint32_t) z_thread_entry;
+
+#ifdef CONFIG_USERSPACE
+	struct z_xtensa_thread_stack_header *header =
+		(struct z_xtensa_thread_stack_header *)thread->stack_obj;
+
+	thread->arch.psp = header->privilege_stack +
+		sizeof(header->privilege_stack);
+
+	if ((thread->base.user_options & K_USER) == K_USER) {
+		thread->arch.ctx.pc = (uint32_t) arch_user_mode_enter;
+	} else
+#endif
+	{
+		thread->arch.ctx.pc = (uint32_t) z_thread_entry;
+	}
+
 	thread->arch.ctx.a1 = (uint32_t) stack_ptr;
 	thread->arch.ctx.a2 = (uint32_t) entry;
 	thread->arch.ctx.a3 = (uint32_t) p1;
