@@ -49,16 +49,6 @@ DEF_INT_C_HANDLER(7)
 
 static ALWAYS_INLINE DEF_INT_C_HANDLER(1)
 
-/* FIXME: in win0 that reason argument in a2 is rotated out and hidden
- * when it gets to the handler.  Need to either dig it out or find
- * some other convention.  Right now we just abort the thread.
- */
-__unused static char arch_except_pc;
-void xtensa_arch_except(__unused int reason_p)
-{
-	__asm__("arch_except_pc: ill");
-}
-
 /* FIXME: same, need a mechanism for spilling rotated frames inside
  * the handler.  Also this isn't a "stack" (in the sense of a call
  * stack), it's dumping the interrupted context, which just happens to

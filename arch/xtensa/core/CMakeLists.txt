@@ -9,6 +9,7 @@ zephyr_library_sources(
   fatal.c
   irq_manage.c
   thread.c
+  exc_stubs.S
   )
 
 if(CONFIG_XTENSA_WINDOWED_ABI)
