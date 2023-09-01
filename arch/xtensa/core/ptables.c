@@ -906,9 +906,11 @@ static inline int reset_region(uint32_t *ptables, uintptr_t start, size_t size, 
 
 void xtensa_user_stack_perms(struct k_thread *thread)
 {
+#if 0
 	(void)memset((void *)thread->stack_info.start,
 		     (IS_ENABLED(CONFIG_INIT_STACKS)) ? 0xAA : 0x00,
 		     thread->stack_info.size - thread->stack_info.delta);
+#endif
 
 	update_region(thread_page_tables_get(thread),
 		      thread->stack_info.start, thread->stack_info.size,
