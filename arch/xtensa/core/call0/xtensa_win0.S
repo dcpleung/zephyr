@@ -405,16 +405,12 @@ syscall_handler:
 	addi a0, a0, 3 /* skip over syscall instruction */
 	s32i a0, a10, ___thread_t_arch_OFFSET + __xtensa_win0_ctx_t_user_pc_OFFSET
 	rsr a0, PS
-	movi a1, ~PS_EXCM_MASK
-	and a0, a0, a1
+	addi a0, a0, -(PS_EXCM_MASK)
 	s32i a0, a10, ___thread_t_arch_OFFSET + __xtensa_win0_ctx_t_user_ps_OFFSET
 
-	/* Further cook PS to set RING=0, UM=0 and INTLEVEL=1 (See above re:
-	 * INTLEVEL), then set our sp and unmask
-	 */
-	movi a1, ~(PS_RING_MASK | PS_UM_MASK | PS_INTLEVEL_MASK)
+	/* Further cook PS to set RING=0 and UM=0, then set our sp and unmask */
+	movi a1, ~(PS_RING_MASK | PS_UM_MASK)
 	and a0, a0, a1
-	addi a0, a0, 1 /* INTLEVEL = 1 */
 #ifdef CONFIG_USERSPACE
 	l32i a1, a10, ___thread_t_arch_OFFSET + ___thread_arch_t_psp_OFFSET
 #else
@@ -443,9 +439,9 @@ syscall_handler:
 	movi a8, 0
 	movi a9, 0
 
+	rsil a11, 0xf /* lock before getting CPU pointer, we can migrate! */
 	rsr a10, ZSR_CPU
 	l32i a10, a10, ___cpu_t_current_OFFSET
-	rsil a11, 0xf
 	l32i a0, a10, ___thread_t_arch_OFFSET + __xtensa_win0_ctx_t_user_a0_OFFSET
 	l32i a1, a10, ___thread_t_arch_OFFSET + __xtensa_win0_ctx_t_user_a1_OFFSET
 	l32i a11, a10, ___thread_t_arch_OFFSET + __xtensa_win0_ctx_t_user_ps_OFFSET
@@ -464,7 +460,7 @@ syscall_handler:
 .global xtensa_switch
 xtensa_switch:
 	addi a4, a3, ___thread_t_arch_OFFSET - ___thread_t_switch_handle_OFFSET
-	s32i a0, a4, __xtensa_win0_ctx_t_a0_OFFSET
+	s32i a0, a4, __xtensa_win0_ctx_t_pc_OFFSET /* return addr = restore PC */
 	s32i a1, a4, __xtensa_win0_ctx_t_a1_OFFSET
 	s32i a12, a4, __xtensa_win0_ctx_t_a12_OFFSET
 	s32i a13, a4, __xtensa_win0_ctx_t_a13_OFFSET
@@ -472,10 +468,6 @@ xtensa_switch:
 	s32i a15, a4, __xtensa_win0_ctx_t_a15_OFFSET
 	rsr a5, PS
 	s32i a5, a4, __xtensa_win0_ctx_t_ps_OFFSET
-	movi a5, end_switch
-	s32i a5, a4, __xtensa_win0_ctx_t_pc_OFFSET
 	s32i a4, a3, 0 /* store switch handle */
 	mov a3, a2
 	j restore
-end_switch:
-	ret
