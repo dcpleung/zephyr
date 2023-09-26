@@ -87,6 +87,31 @@ void *xtensa_excint1_c(xtensa_win0_ctx_t *ctx)
 	printk(" **  PC %p VADDR %p\n", (void *)ctx->pc, (void *)vaddr);
 	printk(" **  PS 0x%x\n", ctx->ps);
 
+	printk(" **  A0 %p  A1 %p  A2 %p  A3 %p\n",
+	       (void *)ctx->a0, (void *)ctx->a1,
+	       (void *)ctx->a2, (void *)ctx->a3);
+
+	printk(" **  A4 %p  A5 %p  A6 %p  A7 %p\n",
+	       (void *)ctx->a4, (void *)ctx->a5,
+	       (void *)ctx->a6, (void *)ctx->a7);
+
+	printk(" **  A8 %p  A9 %p A10 %p A11 %p\n",
+	       (void *)ctx->a8, (void *)ctx->a9,
+	       (void *)ctx->a10, (void *)ctx->a11);
+
+	printk(" ** A12 %p A13 %p A14 %p A15 %p\n",
+	       (void *)ctx->a12, (void *)ctx->a13,
+	       (void *)ctx->a14, (void *)ctx->a15);
+
+#if XCHAL_HAVE_LOOPS
+	printk(" ** LBEG %p LEND %p LCOUNT %p\n",
+	       (void *)ctx->lbeg,
+	       (void *)ctx->lend,
+	       (void *)ctx->lcount);
+#endif
+
+	printk(" ** SAR %p\n", (void *)ctx->sar);
+
 	xtensa_fatal_error(reason, (void *)ctx);
 	return z_get_next_switch_handle(NULL);
 }
