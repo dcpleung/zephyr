@@ -28,7 +28,7 @@ manifest:
       groups:
         - optional
     - name: sof
-      revision: c0f20b69daa44e3563f970b366e49ccfcfa1b71c
+      revision: aadbfa0a3b75f3d7be680499a845b14c88c3404d
       path: modules/audio/sof
       remote: upstream
       groups:
