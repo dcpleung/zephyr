@@ -307,6 +307,9 @@ SECTIONS
     *libarch__xtensa__core.a:xtensa_asm2_util.S.obj(.literal .text)
     *libarch__xtensa__core.a:xtensa_asm2_util.S.obj(.iram.text .iram0.text)
 
+    *libarch__xtensa__core.a:xtensa_win0.S.obj(.iram.literal)
+    *libarch__xtensa__core.a:xtensa_win0.S.obj(.iram.text)
+
     *libarch__xtensa__core.a:window_vectors.S.obj(.iram.text)
 
     *libarch__xtensa__core.a:crt1.S.obj(.literal .text)
@@ -323,7 +326,7 @@ SECTIONS
     *libarch__xtensa__core.a:debug_helpers_asm.S.obj(.iram1.literal .iram1)
 
     /* Userspace related stuff */
-    LIB_OBJ_FUNC_IN_SECT(libarch__xtensa__core.a,userspace.S.obj,xtensa_do_syscall)
+    LIB_OBJ_FUNC_IN_SECT(libarch__xtensa__core.a,userspace_asm2.S.obj,xtensa_do_syscall)
     LIB_OBJ_FUNC_IN_SECT(libarch__xtensa__core.a,ptables.c.obj,xtensa_swap_update_page_tables)
 
     /* Below are to speed up execution by avoiding TLB misses
