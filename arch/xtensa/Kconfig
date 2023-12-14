@@ -9,6 +9,19 @@ menu "XTENSA Options"
 config ARCH
 	default "xtensa"
 
+choice
+	prompt "Xtensa ABI"
+	default XTENSA_WINDOWED_ABI
+	help
+	  Select which ABI to build for.
+
+config XTENSA_WINDOWED_ABI
+	bool "Windowed ABI"
+	help
+	  Use Windowed ABI.
+
+endchoice
+
 config SIMULATOR_XTENSA
 	bool "Simulator Target"
 	help

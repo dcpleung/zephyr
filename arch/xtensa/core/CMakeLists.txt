@@ -7,12 +7,17 @@ zephyr_library()
 zephyr_library_sources(
   cpu_idle.c
   fatal.c
-  window_vectors.S
-  xtensa_asm2_util.S
   irq_manage.c
   thread.c
-  vector_handlers.c
   )
+
+if(CONFIG_XTENSA_WINDOWED_ABI)
+  zephyr_library_sources(
+    windowed/vector_handlers.c
+    windowed/window_vectors.S
+    windowed/xtensa_asm2_util.S
+  )
+endif()
 
 zephyr_library_sources_ifdef(CONFIG_XTENSA_USE_CORE_CRT1 crt1.S)
 zephyr_library_sources_ifdef(CONFIG_IRQ_OFFLOAD irq_offload.c)

@@ -22,4 +22,9 @@ set(NOSYSDEF_CFLAG "")
 
 list(APPEND TOOLCHAIN_C_FLAGS -fms-extensions)
 
+if(CONFIG_XTENSA_WINDOWED_ABI)
+  list(APPEND TOOLCHAIN_C_FLAGS -mabi=windowed)
+  list(APPEND TOOLCHAIN_LD_FLAGS -mabi=windowed)
+endif()
+
 set(TOOLCHAIN_HAS_NEWLIB OFF CACHE BOOL "True if toolchain supports newlib")
