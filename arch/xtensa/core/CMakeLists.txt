@@ -13,6 +13,7 @@ zephyr_library_sources(
 
 if(CONFIG_XTENSA_WINDOWED_ABI)
   zephyr_library_sources(
+    windowed/thread_windowed.c
     windowed/vector_handlers.c
     windowed/window_vectors.S
     windowed/xtensa_asm2_util.S
