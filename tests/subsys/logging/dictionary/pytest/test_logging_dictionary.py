@@ -33,7 +33,15 @@ def process_logs(dut: DeviceAdapter, build_dir):
     logger.info(f'Log parser script: {parser_script}')
 
     # And also the dictionary JSON file is there...
-    dictionary_json = os.path.join(build_dir, "zephyr", "log_dictionary.json")
+    is_sysbuild_dir = os.path.join(build_dir, "zephyr", "dictionary")
+
+    if os.path.isdir(is_sysbuild_dir):
+        # With sysbuild, the test app is built under another layer of directory
+        # where the JSON file is.
+        dictionary_json = os.path.join(build_dir, "zephyr", "dictionary", "log_dictionary.json")
+    else:
+        dictionary_json = os.path.join(build_dir, "zephyr", "log_dictionary.json")
+
     assert os.path.isfile(dictionary_json)
     logger.info(f'Dictionary JSON: {dictionary_json}')
 
