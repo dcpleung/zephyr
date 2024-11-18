@@ -59,3 +59,24 @@ config EVICTION_TRACKING
 	  Selected by eviction algorithms which needs page tracking and need to
 	  implement the following functions: k_mem_paging_eviction_add(),
 	  k_mem_paging_eviction_remove() and k_mem_paging_eviction_accessed().
+
+choice EVICTION_TRACKING_CHOICE
+	prompt "Eviction Tracking Method"
+	default EVICTION_TRACKING_VIA_ACCESS_EXCEPTION if ARM64
+	default EVICTION_TRACKING_VIA_MARK_FUNC
+	depends on EVICTION_TRACKING
+
+config EVICTION_TRACKING_VIA_ACCESS_EXCEPTION
+	bool "Page access exception"
+	help
+	  Eviction tracking can be done for architecture that supports generating
+	  exception when a page is accessed. The necessary support needs to be
+	  implemented in arch_page_info_get().
+
+config EVICTION_TRACKING_VIA_MARK_FUNC
+	bool "Architecture specific eviction tracking"
+	help
+	  Architecutre needs to implement arch_page_eviction_tracking_mark() to
+	  mark and unmark pages for eviction tracking.
+
+endchoice

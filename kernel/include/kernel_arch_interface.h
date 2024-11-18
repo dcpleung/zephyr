@@ -580,6 +580,29 @@ enum arch_page_location arch_page_location_get(void *addr, uintptr_t *location);
 uintptr_t arch_page_info_get(void *addr, uintptr_t *location,
 			     bool clear_accessed);
 
+#if defined(CONFIG_EVICTION_TRACKING) || defined(__DOXYGEN__)
+/**
+ * Mark/unmark a page for eviction tracking.
+ *
+ * This marks or unmarks a page for eviction tracking. A marked page
+ * can then be tracked via architecture specific mechanism.
+ *
+ * @param addr Virtual address to look up in page tables
+ * @param track True to track the page, false otherwise
+ * @retval Value with ARCH_DATA_PAGE_* bits set reflecting the data page
+ *         configuration. Similar to arch_page_info_get().
+ */
+#if defined(CONFIG_EVICTION_TRACKING_VIA_ACCESS_EXCEPTION)
+static ALWAYS_INLINE uintptr_t arch_page_eviction_tracking_mark(void *addr, bool track)
+{
+	return arch_page_info_get(addr, NULL, track);
+};
+#elif defined(CONFIG_EVICTION_TRACKING_VIA_MARK_FUNC)
+uintptr_t arch_page_eviction_tracking_mark(void *addr, bool track);
+#endif /* CONFIG_EVICTION_TRACKING_VIA_* */
+
+#endif /* CONFIG_EVICTION_TRACKING || __DOXYGEN__ */
+
 /** @} */
 
 /**
