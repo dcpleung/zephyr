@@ -57,19 +57,26 @@ config LOG_BACKEND_ADSP
 
 endif # LOG
 
-config XTENSA_MORE_SPIN_RELAX_NOPS
+config SOC_SERIES_INTEL_ADSP_ACE_CUSTOM_MORE_SPIN_RELAX_NOPS
+	bool "Use Intel Audio DSP specific arch_spin_relax() with more NOPs"
+	depends on !XTENSA_MORE_SPIN_RELAX_NOPS
 	default y if SMP && MP_MAX_NUM_CPUS > 1
+	help
+	  Add some NOPs after failure to lock a spinlock. This gives
+	  the bus extra time to synchronize the RCW transaction
+	  among CPUs.
 
-if XTENSA_MORE_SPIN_RELAX_NOPS
-
-config XTENSA_NUM_SPIN_RELAX_NOPS
+config SOC_SERIES_INTEL_ADSP_ACE_NUM_SPIN_RELAX_NOPS
+	int "Number of NOPs to be used in Intel Audio DSP specific arch_spin_relax()"
+	depends on SOC_SERIES_INTEL_ADSP_ACE_CUSTOM_MORE_SPIN_RELAX_NOPS
 	default 32 if MP_MAX_NUM_CPUS = 1
 	default 64 if MP_MAX_NUM_CPUS = 2
 	default 96 if MP_MAX_NUM_CPUS = 3
 	default 128 if MP_MAX_NUM_CPUS = 4
 	default 160 if MP_MAX_NUM_CPUS = 5
-
-endif # XTENSA_MORE_SPIN_RELAX_NOPS
+	help
+	  Specify the number of NOPs in Intel Audio DSP specific
+	  arch_spin_relax().
 
 if KERNEL_VM_SUPPORT
 
