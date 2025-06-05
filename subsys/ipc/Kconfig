@@ -6,6 +6,7 @@
 menu "Inter Processor Communication"
 
 source "subsys/ipc/rpmsg_service/Kconfig"
+source "subsys/ipc/ipc_msg_service/Kconfig"
 source "subsys/ipc/ipc_service/Kconfig"
 source "subsys/ipc/open-amp/Kconfig"
 
