@@ -2261,4 +2261,93 @@ bool z_x86_kpti_is_access_ok(void *addr, pentry_t *ptables)
 	return true;
 }
 #endif /* CONFIG_X86_KPTI */
+
+#ifdef CONFIG_EVICTION_TRACKING
+__pinned_func
+bool z_x86_page_fault_eviction_tracking_handler(void *virt, uintptr_t *phys, pentry_t *ptables)
+{
+	pentry_t pte;
+	int level;
+
+	pentry_get(&level, &pte, ptables, virt);
+
+	if ((pte & (MMU_RSVD51 | MMU_P)) != (MMU_RSVD51 | MMU_P)) {
+		return false;
+	}
+
+	/* The eviction tracking requires exception on page access to work.
+	 * However, x86 does not support raising exception during page
+	 * access. So we use the reserved bit #51 to indicate such entry.
+	 * When we encounter such page, flip those bits back to normal
+	 * and mark it as valid access so it won't go through the whole
+	 * page fault routine.
+	 */
+	if ((level == PTE_LEVEL) && (pte != 0) && z_x86_is_page_eviction_tracked(pte)) {
+		page_map_set(ptables, virt, 0, NULL, MMU_RSVD51, OPTION_FLUSH | OPTION_USER);
+
+		*phys = get_entry_phys(pte, level);
+
+		return true;
+	}
+
+	return false;
+}
+
+__pinned_func
+uintptr_t arch_page_eviction_tracking_mark(void *addr, bool track)
+{
+	uint32_t option = OPTION_FLUSH | OPTION_USER;
+	pentry_t all_pte;
+
+	/* The eviction tracking requires exception on page access to work.
+	 * However, x86 does not support raising exception during page
+	 * access. So we flip the present bit to generate a page fault
+	 * instead, and use the global bit to indicate such entry.
+	 * When we encounter such page, flip those bits back to normal
+	 * and mark it as valid access so it won't go through the whole
+	 * page fault routine.
+	 */
+	pentry_t update_val = track ? MMU_RSVD51 : 0;
+	pentry_t mask = MMU_RSVD51;
+
+	page_map_set(z_x86_kernel_ptables, addr, update_val, &all_pte, mask, option);
+
+#if defined(CONFIG_USERSPACE) && !defined(CONFIG_X86_COMMON_PAGE_TABLE)
+	/* Don't bother looking at other page tables if non-present as we
+	 * are not required to report accurate accessed/dirty in this case
+	 * and all mappings are otherwise the same.
+	 */
+	if ((all_pte & MMU_P) != 0) {
+		sys_snode_t *node;
+
+		/* IRQs are locked, safe to do this */
+		SYS_SLIST_FOR_EACH_NODE(&x86_domain_list, node) {
+			pentry_t cur_pte;
+			struct arch_mem_domain *domain =
+				CONTAINER_OF(node, struct arch_mem_domain, node);
+
+			page_map_set(domain->ptables, addr, update_val, &cur_pte, mask, option);
+
+			/* Logical OR of relevant PTE in all page tables.
+			 * addr/location and present state should be identical
+			 * among them.
+			 */
+			all_pte |= cur_pte;
+		}
+	}
+#endif /* USERSPACE && ~X86_COMMON_PAGE_TABLE */
+
+	/* We don't filter out any other bits in the PTE and the kernel
+	 * ignores them. For the case of ARCH_DATA_PAGE_NOT_MAPPED,
+	 * we use a bit which is never set in a real PTE (the PAT bit) in the
+	 * current system.
+	 *
+	 * The other ARCH_DATA_PAGE_* macros are defined to their corresponding
+	 * bits in the PTE.
+	 */
+	return (uintptr_t)all_pte;
+}
+
+#endif /* CONFIG_EVICTION_TRACKING */
+
 #endif /* CONFIG_DEMAND_PAGING */

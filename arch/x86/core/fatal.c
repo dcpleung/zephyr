@@ -12,6 +12,10 @@
 #include <mmu.h>
 LOG_MODULE_DECLARE(os, CONFIG_KERNEL_LOG_LEVEL);
 
+#ifdef CONFIG_DEMAND_PAGING
+#include <zephyr/kernel/mm/demand_paging.h>
+#endif
+
 #if defined(CONFIG_BOARD_QEMU_X86) || defined(CONFIG_BOARD_QEMU_X86_64)
 FUNC_NORETURN void arch_system_halt(unsigned int reason)
 {
@@ -455,6 +459,27 @@ __pinned_func
 void z_x86_page_fault_handler(struct arch_esf *esf)
 {
 #ifdef CONFIG_DEMAND_PAGING
+#ifdef CONFIG_EVICTION_TRACKING
+	if ((esf->errorCode & PF_RSVD) == PF_RSVD) {
+		/* We use the reserved bit at bit 51 to track pages for eviction
+		 * algorithms. So when we have a page fault indicating reserved
+		 * bits are set, we need to figure out if it is a tracked page.
+		 * If so, we need to handle it letting the eviction algorithm
+		 * knows that the page has been accessed. Then we clear bit 51
+		 * so it is again a valid PTE, and we can continue code execution.
+		 */
+		void *virt = z_x86_cr2_get();
+		uintptr_t phys;
+
+		if (z_x86_page_fault_eviction_tracking_handler(virt, &phys, get_ptables(esf))) {
+			k_mem_paging_eviction_accessed(phys);
+
+			/* Page fault handled, re-try */
+			return;
+		}
+	}
+#endif /* CONFIG_EVICTION_TRACKING */
+
 	if ((esf->errorCode & PF_P) == 0) {
 		/* Page was non-present at time exception happened.
 		 * Get faulting virtual address from CR2 register

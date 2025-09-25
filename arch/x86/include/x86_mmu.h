@@ -44,6 +44,9 @@
 #define MMU_PS		BITL(7)		/** Page Size (non PTE)*/
 #define MMU_PAT		BITL(7)		/** Page Attribute (PTE) */
 #define MMU_G		BITL(8)		/** Global */
+#if defined(CONFIG_X86_64) || defined(CONFIG_X86_PAE)
+#define MMU_RSVD51	BITL(51)	/** Reserved bit 51 */
+#endif
 #ifdef XD_SUPPORTED
 #define MMU_XD		BITL(63)	/** Execute Disable */
 #else
@@ -234,5 +237,35 @@ void z_x86_swap_update_common_page_table(struct k_thread *incoming);
 
 /* Early-boot paging setup tasks, called from prep_c */
 void z_x86_mmu_init(void);
+
+#ifdef CONFIG_EVICTION_TRACKING
+/**
+ * Handle eviction tracking during page faults
+ *
+ * @param virt Virtual address of the page fault.
+ * @param[out] Physical address of corresponding page that caused page fault.
+ * @param ptables Pointer to page table currently in use.
+ *
+ * @retval true Page fault successfully handled, or nothing needed to be done.
+ *              The arch layer should retry the faulting instruction.
+ * @retval false This page fault was not handled by eviction tracking, and
+ *               further action needs to be taken to handle the page fault.
+ */
+bool z_x86_page_fault_eviction_tracking_handler(void *virt, uintptr_t *phys, pentry_t *ptables);
+
+/**
+ * Check if a PTE reprsents a page being tracked for eviction algorithm.
+ *
+ * @param pte Page Table Entry
+ *
+ * @retval true Page is being tracked for eviction algorithm.
+ * @retval false Page is NOT being tracked for eviction algorithm.
+ */
+static inline bool z_x86_is_page_eviction_tracked(pentry_t pte)
+{
+	return ((pte & MMU_RSVD51) == MMU_RSVD51);
+}
+#endif /* CONFIG_EVICTION_TRACKING */
+
 #endif /* _ASMLANGUAGE */
 #endif /* ZEPHYR_ARCH_X86_INCLUDE_X86_MMU_H */
