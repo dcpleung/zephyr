@@ -19,6 +19,20 @@
 #define SKIP_EXECUTE_TESTS
 #endif
 
+/* With demand paging, the test_mem_map linker section lies outside of
+ * the kernel image range. Because of this, k_mem_phys_addr() cannot return
+ * the correct physical address of transplanted_function(), resulting in
+ * wrong memory being mapped via k_mem_map_phys_bare(). The incorrectly
+ * mapped address does not contain transplanted_function() and cannot be
+ * executed. So skip the code execution test if demand paging is enabled.
+ */
+#if defined(CONFIG_DEMAND_PAGING)
+#if defined(SKIP_EXECUTE_TESTS)
+#undef SKIP_EXECUTE_TESTS
+#endif
+#define SKIP_EXECUTE_TESTS
+#endif
+
 #define BASE_FLAGS	(K_MEM_CACHE_WB)
 volatile bool expect_fault;
 
