@@ -5,30 +5,40 @@
 config SOC_SERIES_INTEL_ADSP_ACE
 	bool
 	select SOC_FAMILY_INTEL_ADSP
+	select XTENSA_CPU_HAS_HIFI3
+	select XTENSA_CPU_HAS_HIFI4
 	help
 	  Intel ADSP ACE
 
 config SOC_INTEL_ACE15_MTPM
 	bool
 	select SOC_SERIES_INTEL_ADSP_ACE
+	select XTENSA_CPU_HAS_HIFI3
+	select XTENSA_CPU_HAS_HIFI4
 	help
 	  ACE 1.5 Meteor Lake PCH M
 
 config SOC_INTEL_ACE20_LNL
 	bool
 	select SOC_SERIES_INTEL_ADSP_ACE
+	select XTENSA_CPU_HAS_HIFI3
+	select XTENSA_CPU_HAS_HIFI4
 	help
 	  ACE 2.0 Lunar Lake PCH
 
 config SOC_INTEL_ACE30
 	bool
 	select SOC_SERIES_INTEL_ADSP_ACE
+	select XTENSA_CPU_HAS_HIFI3
+	select XTENSA_CPU_HAS_HIFI4
 	help
 	  ACE 3.0 Panther Lake PCH
 
 config SOC_INTEL_ACE40
 	bool
 	select SOC_SERIES_INTEL_ADSP_ACE
+	select XTENSA_CPU_HAS_HIFI3
+	select XTENSA_CPU_HAS_HIFI4
 	help
 	  ACE 4.0 Nova Lake PCH
 
