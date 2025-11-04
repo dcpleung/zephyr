@@ -1180,7 +1180,13 @@ ZTEST(smp_stress, test_smp_switch_stress)
 	}
 
 	k_thread_create(&t2, t2_stack, T2_STACK_SIZE, signal_raise,
-			NULL, NULL, NULL, K_PRIO_COOP(2), 0, K_NO_WAIT);
+			NULL, NULL, NULL, K_PRIO_COOP(2), 0, K_FOREVER);
+
+#if defined(CONFIG_SCHED_CPU_MASK) && (CONFIG_MP_MAX_NUM_CPUS > 1)
+	k_thread_cpu_pin(&t2, 0);
+#endif
+
+	k_thread_start(&t2);
 
 	k_sleep(K_MSEC(SLEEP_MS_LONG));
 
