@@ -39,4 +39,8 @@ endchoice
 config DCACHE_LINE_SIZE
 	default 64
 
+choice COMPILER_OPTIMIZATIONS
+	default SPEED_OPTIMIZATIONS
+endchoice
+
 endif # SOC_FAMILY_INTEL_ADSP
