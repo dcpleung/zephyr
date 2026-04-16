@@ -1,0 +1,131 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) The Zephyr Project Contributors
+
+config WORKQUEUE_WORK_TIMEOUT
+	bool "Support workqueue work timeout monitoring"
+	help
+	  If enabled, the workqueue will monitor the duration of each work item.
+	  If the work item handler takes longer than the specified time to
+	  execute, the work queue thread will be aborted, and an error will be
+	  logged.
+
+menu "System Work Queue Options"
+
+config SYSTEM_WORKQUEUE_STACK_SIZE
+	int "System workqueue stack size"
+	default 4096 if COVERAGE_GCOV || WIFI_NRF70
+	default 2560 if WIFI_NM_WPA_SUPPLICANT
+	default 1024
+
+config SYSTEM_WORKQUEUE_PRIORITY
+	int "System workqueue priority"
+	default -2 if COOP_ENABLED && !PREEMPT_ENABLED
+	default  0 if !COOP_ENABLED
+	default -1
+	help
+	  By default, system work queue priority is the lowest cooperative
+	  priority. This means that any work handler, once started, won't
+	  be preempted by any other thread until finished.
+
+config SYSTEM_WORKQUEUE_NO_YIELD
+	bool "Select whether system work queue yields"
+	help
+	  By default, the system work queue yields between each work item, to
+	  prevent other threads from being starved.  Selecting this removes
+	  this yield, which may be useful if the work queue thread is
+	  cooperative and a sequence of work items is expected to complete
+	  without yielding.
+
+config SYSTEM_WORKQUEUE_WORK_TIMEOUT_MS
+	int "Select system work queue work timeout in milliseconds"
+	default 5000 if ASSERT
+	default 0
+	help
+	  Set to 0 to disable work timeout for system workqueue. Option
+	  has no effect if WORKQUEUE_WORK_TIMEOUT is not enabled.
+
+endmenu
+
+menu "Other Kernel Object Options"
+
+config POLL
+	bool "Async I/O Framework"
+	help
+	  Asynchronous notification framework. Enable the k_poll() and
+	  k_poll_signal_raise() APIs.  The former can wait on multiple events
+	  concurrently, which can be either directly triggered or triggered by
+	  the availability of some kernel objects (semaphores and FIFOs).
+
+config MEM_SLAB_POINTER_VALIDATE
+	bool "Validate the memory slab pointer when allocating or freeing"
+	default ASSERT
+	help
+	  This enables additional runtime checks to validate the memory slab
+	  pointer during when allocating or freeing a memory slab.
+
+config MEM_SLAB_TRACE_MAX_UTILIZATION
+	bool "Getting maximum slab utilization"
+	help
+	  This adds variable to the k_mem_slab structure to hold
+	  maximum utilization of the slab.
+
+config NUM_MBOX_ASYNC_MSGS
+	int "Maximum number of in-flight asynchronous mailbox messages"
+	default 10
+	help
+	  This option specifies the total number of asynchronous mailbox
+	  messages that can exist simultaneously, across all mailboxes
+	  in the system.
+
+	  Setting this option to 0 disables support for asynchronous
+	  mailbox messages.
+
+config EVENTS
+	bool "Event objects"
+	depends on MULTITHREADING
+	help
+	  This option enables event objects. Threads may wait on event
+	  objects for specific events, but both threads and ISRs may deliver
+	  events to event objects.
+
+	  Note that setting this option slightly increases the size of the
+	  thread structure.
+
+config KERNEL_MEM_POOL
+	bool "Use Kernel Memory Pool"
+	default y
+	help
+	  Enable the use of kernel memory pool.
+
+	  Say y if unsure.
+
+if KERNEL_MEM_POOL
+
+config HEAP_MEM_POOL_SIZE
+	int "Heap memory pool size (in bytes)"
+	default 0
+	help
+	  This option specifies the size of the heap memory pool used when
+	  dynamically allocating memory using k_malloc(). The maximum size of
+	  the memory pool is only limited to available memory. If subsystems
+	  specify HEAP_MEM_POOL_ADD_SIZE_* options, these will be added together
+	  and the sum will be compared to the HEAP_MEM_POOL_SIZE value.
+	  If the sum is greater than the HEAP_MEM_POOL_SIZE option (even if this
+	  has the default 0 value), then the actual heap size will be rounded up
+	  to the sum of the individual requirements (unless the
+	  HEAP_MEM_POOL_IGNORE_MIN option is enabled). If the final value, after
+	  considering both this option as well as sum of the custom
+	  requirements, ends up being zero, then no system heap will be
+	  available.
+
+config HEAP_MEM_POOL_IGNORE_MIN
+	bool "Ignore the minimum heap memory pool requirement"
+	help
+	  This option can be set to force setting a smaller heap memory pool
+	  size than what's specified by enabled subsystems. This can be useful
+	  when optimizing memory usage and a more precise minimum heap size
+	  is known for a given application.
+
+endif # KERNEL_MEM_POOL
+
+endmenu

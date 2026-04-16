@@ -1,0 +1,400 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) The Zephyr Project Contributors
+
+config MULTITHREADING
+	bool "Multi-threading" if ARCH_HAS_SINGLE_THREAD_SUPPORT
+	default y
+	select RING_BUFFER
+	help
+	  If disabled, only the main thread is available, so a main() function
+	  must be provided. Interrupts are available. Kernel objects will most
+	  probably not behave as expected, especially with regards to pending,
+	  since the main thread cannot pend, it being the only thread in the
+	  system.
+
+	  Many drivers and subsystems will not work with this option
+	  set to 'n'; disable only when you REALLY know what you are
+	  doing.
+
+config NUM_COOP_PRIORITIES
+	int "Number of coop priorities" if MULTITHREADING
+	default 1 if !MULTITHREADING
+	default 16
+	range 0 128
+	help
+	  Number of cooperative priorities configured in the system. Gives access
+	  to priorities:
+
+		K_PRIO_COOP(0) to K_PRIO_COOP(CONFIG_NUM_COOP_PRIORITIES - 1)
+
+	  or seen another way, priorities:
+
+		-CONFIG_NUM_COOP_PRIORITIES to -1
+
+	  This can be set to zero to disable cooperative scheduling. Cooperative
+	  threads always preempt preemptible threads.
+
+	  The total number of priorities is
+
+	   NUM_COOP_PRIORITIES + NUM_PREEMPT_PRIORITIES + 1
+
+	  The extra one is for the idle thread, which must run at the lowest
+	  priority, and be the only thread at that priority.
+
+config NUM_PREEMPT_PRIORITIES
+	int "Number of preemptible priorities" if MULTITHREADING
+	default 0 if !MULTITHREADING
+	default 15
+	range 0 127
+	help
+	  Number of preemptible priorities available in the system. Gives access
+	  to priorities 0 to CONFIG_NUM_PREEMPT_PRIORITIES - 1.
+
+	  This can be set to 0 to disable preemptible scheduling.
+
+	  The total number of priorities is
+
+	   NUM_COOP_PRIORITIES + NUM_PREEMPT_PRIORITIES + 1
+
+	  The extra one is for the idle thread, which must run at the lowest
+	  priority, and be the only thread at that priority.
+
+config MAIN_THREAD_PRIORITY
+	int "Priority of initialization/main thread"
+	default -2 if !PREEMPT_ENABLED
+	default 0
+	help
+	  Priority at which the initialization thread runs, including the start
+	  of the main() function. main() can then change its priority if desired.
+
+config COOP_ENABLED
+	def_bool (NUM_COOP_PRIORITIES != 0)
+
+config PREEMPT_ENABLED
+	def_bool (NUM_PREEMPT_PRIORITIES != 0)
+
+config PRIORITY_CEILING
+	int "Priority inheritance ceiling"
+	default -128
+	range -128 127
+	help
+	  This defines the minimum priority value (i.e. the logically highest
+	  priority) that a thread will acquire as part of the k_mutex priority
+	  inheritance. Setting this to a priority level at or lower than the
+	  the idle thread's priority level disables the k_mutex priority
+	  inheritance algorithm.
+
+config NUM_METAIRQ_PRIORITIES
+	int "Number of very-high priority 'preemptor' threads"
+	default 0
+	help
+	  This defines a set of priorities at the (numerically) lowest
+	  end of the range which have "meta-irq" behavior.  Runnable
+	  threads at these priorities will always be scheduled before
+	  threads at lower priorities, EVEN IF those threads are
+	  otherwise cooperative and/or have taken a scheduler lock.
+	  Making such a thread runnable in any way thus has the effect
+	  of "interrupting" the current task and running the meta-irq
+	  thread synchronously, like an exception or system call.  The
+	  intent is to use these priorities to implement "interrupt
+	  bottom half" or "tasklet" behavior, allowing driver
+	  subsystems to return from interrupt context but be guaranteed
+	  that user code will not be executed (on the current CPU)
+	  until the remaining work is finished.  As this breaks the
+	  "promise" of non-preemptibility granted by the current API
+	  for cooperative threads, this tool probably shouldn't be used
+	  from application code.
+
+config SCHED_DEADLINE
+	bool "Earliest-deadline-first scheduling"
+	help
+	  This enables a simple "earliest deadline first" scheduling
+	  mode where threads can set "deadline" deltas measured in
+	  k_cycle_get_32() units.  Priority decisions within (!!) a
+	  single priority will choose the next expiring deadline and
+	  not simply the least recently added thread.
+
+config MAIN_STACK_SIZE
+	int "Size of stack for initialization and main thread"
+	default 2048 if COVERAGE_GCOV
+	default 512 if ZTEST && !(RISCV || X86 || ARM || ARC || OPENRISC)
+	default 1024
+	help
+	  When the initialization is complete, the thread executing it then
+	  executes the main() routine, so as to reuse the stack used by the
+	  initialization, which would be wasted RAM otherwise.
+
+	  After initialization is complete, the thread runs main().
+
+config IDLE_STACK_SIZE
+	int "Size of stack for idle thread"
+	default 2048 if COVERAGE_GCOV
+	default 1024 if XTENSA
+	default 512 if RISCV
+	default 384 if DYNAMIC_OBJECTS
+	default 320 if ARC || (ARM && CPU_HAS_FPU) || (X86 && MMU)
+	default 256
+	help
+	  Depending on the work that the idle task must do, most likely due to
+	  power management but possibly to other features like system event
+	  logging (e.g. logging when the system goes to sleep), the idle thread
+	  may need more stack space than the default value.
+
+config ISR_STACK_SIZE
+	int "ISR and initialization stack size (in bytes)"
+	default 2048
+	help
+	  This option specifies the size of the stack used by interrupt
+	  service routines (ISRs), and during kernel initialization.
+
+config THREAD_STACK_INFO
+	bool "Thread stack info"
+	help
+	  This option allows each thread to store the thread stack info into
+	  the k_thread data structure.
+
+config THREAD_STACK_MEM_MAPPED
+	bool "Stack to be memory mapped at runtime"
+	depends on MMU && ARCH_SUPPORTS_MEM_MAPPED_STACKS
+	select THREAD_STACK_INFO
+	select THREAD_ABORT_NEED_CLEANUP
+	help
+	  This option changes behavior where the thread stack is memory
+	  mapped with guard pages on both ends to catch undesired
+	  accesses.
+
+config THREAD_ABORT_HOOK
+	bool
+	help
+	  Used by portability layers to modify locally managed status mask.
+
+config THREAD_ABORT_NEED_CLEANUP
+	bool
+	help
+	  This option enables the bits to clean up the current thread if
+	  k_thread_abort(_current) is called, as the cleanup cannot be
+	  running in the current thread stack.
+
+config THREAD_CUSTOM_DATA
+	bool "Thread custom data"
+	help
+	  This option allows each thread to store 32 bits of custom data,
+	  which can be accessed using the k_thread_custom_data_xxx() APIs.
+
+config DYNAMIC_THREAD
+	bool "Support for dynamic threads [EXPERIMENTAL]"
+	select EXPERIMENTAL
+	depends on THREAD_STACK_INFO
+	select DYNAMIC_OBJECTS if USERSPACE
+	select THREAD_MONITOR
+	help
+	  Enable support for dynamic threads and stacks.
+
+if DYNAMIC_THREAD
+
+config DYNAMIC_THREAD_STACK_SIZE
+	int "Size of each pre-allocated thread stack"
+	default 4096 if X86 || COVERAGE_GCOV
+	default 1024 if !X86 && !64BIT
+	default 2048 if !X86 && 64BIT
+	help
+	  Default stack size (in bytes) for dynamic threads.
+
+config DYNAMIC_THREAD_ALLOC
+	bool "Support heap-allocated thread objects and stacks"
+	help
+	  Select this option to enable allocating thread object and
+	  thread stacks from the system heap.
+
+	  Only use this type of allocation in situations
+	  where malloc is permitted.
+
+config DYNAMIC_THREAD_POOL_SIZE
+	int "Number of statically pre-allocated threads"
+	default 0
+	range 0 8192
+	help
+	  Pre-allocate a fixed number of thread objects and
+	  stacks at build time.
+
+	  This type of "dynamic" stack is usually suitable in
+	  situations where malloc is not permitted.
+
+choice DYNAMIC_THREAD_PREFER
+	prompt "Preferred dynamic thread allocator"
+	default DYNAMIC_THREAD_PREFER_POOL
+	help
+	  If both CONFIG_DYNAMIC_THREAD_ALLOC=y and
+	  CONFIG_DYNAMIC_THREAD_POOL_SIZE > 0, then the user may
+	  specify the order in which allocation is attempted.
+
+config DYNAMIC_THREAD_PREFER_ALLOC
+	bool "Prefer heap-based allocation"
+	depends on DYNAMIC_THREAD_ALLOC
+	help
+	  Select this option to attempt a heap-based allocation
+	  prior to any pool-based allocation.
+
+config DYNAMIC_THREAD_PREFER_POOL
+	bool "Prefer pool-based allocation"
+	help
+	  Select this option to attempt a pool-based allocation
+	  prior to any heap-based allocation.
+
+endchoice # DYNAMIC_THREAD_PREFER
+
+endif # DYNAMIC_THREADS
+
+choice SCHED_ALGORITHM
+	prompt "Scheduler priority queue algorithm"
+	default SCHED_SIMPLE
+	help
+	  The kernel can be built with several choices for the
+	  ready queue implementation, offering different choices between
+	  code size, constant factor runtime overhead and performance
+	  scaling when many threads are added.
+
+config SCHED_SIMPLE
+	bool "Simple linked-list ready queue"
+	help
+	  When selected, the scheduler ready queue will be implemented
+	  as a simple unordered list, with very fast constant time
+	  performance for single threads and very low code size.
+	  Choose this on systems with constrained code size that will
+	  never see more than a small number (3, maybe) of runnable
+	  threads in the queue at any given time.  On most platforms
+	  (that are not otherwise using the red/black tree) this
+	  results in a savings of ~2k of code size.
+
+config SCHED_SCALABLE
+	bool "Red/black tree ready queue"
+	help
+	  When selected, the scheduler ready queue will be implemented
+	  as a red/black tree.  This has rather slower constant-time
+	  insertion and removal overhead, and on most platforms (that
+	  are not otherwise using the rbtree somewhere) requires an
+	  extra ~2kb of code.  But the resulting behavior will scale
+	  cleanly and quickly into the many thousands of threads.  Use
+	  this on platforms where you may have many threads (very
+	  roughly: more than 20 or so) marked as runnable at a given
+	  time.  Most applications don't want this.
+
+config SCHED_MULTIQ
+	bool "Traditional multi-queue ready queue"
+	depends on !SCHED_DEADLINE
+	help
+	  When selected, the scheduler ready queue will be implemented
+	  as the classic/textbook array of lists, one per priority.
+	  This corresponds to the scheduler algorithm used in Zephyr
+	  versions prior to 1.12.  It incurs only a tiny code size
+	  overhead vs. the "simple" scheduler and runs in O(1) time
+	  in almost all circumstances with very low constant factor.
+	  But it requires a fairly large RAM budget to store those list
+	  heads, and the limited features make it incompatible with
+	  features like deadline scheduling that need to sort threads
+	  more finely, and SMP affinity which need to traverse the list
+	  of threads.  Typical applications with small numbers of runnable
+	  threads probably want the simple scheduler.
+
+endchoice # SCHED_ALGORITHM
+
+choice WAITQ_ALGORITHM
+	prompt "Wait queue priority algorithm"
+	default WAITQ_SIMPLE
+	help
+	  The wait_q abstraction used in IPC primitives to pend
+	  threads for later wakeup shares the same backend data
+	  structure choices as the scheduler, and can use the same
+	  options.
+
+config WAITQ_SCALABLE
+	bool "Use scalable wait_q implementation"
+	help
+	  When selected, the wait_q will be implemented with a
+	  balanced tree.  Choose this if you expect to have many
+	  threads waiting on individual primitives.  There is a ~2kb
+	  code size increase over WAITQ_SIMPLE (which may be shared with
+	  SCHED_SCALABLE) if the rbtree is not used elsewhere in the
+	  application, and pend/unpend operations on "small" queues
+	  will be somewhat slower (though this is not generally a
+	  performance path).
+
+config WAITQ_SIMPLE
+	bool "Simple linked-list wait_q"
+	help
+	  When selected, the wait_q will be implemented with a
+	  doubly-linked list.  Choose this if you expect to have only
+	  a few threads blocked on any single IPC primitive.
+
+endchoice # WAITQ_ALGORITHM
+
+config SWAP_NONATOMIC
+	bool
+	help
+	  On some architectures, the z_swap() primitive cannot be made
+	  atomic with respect to the irq_lock being released.  That
+	  is, interrupts may be received between the entry to z_swap
+	  and the completion of the context switch.  There are a
+	  handful of workaround cases in the kernel that need to be
+	  enabled when this is true.  Currently, this only happens on
+	  ARM when the PendSV exception priority sits below that of
+	  Zephyr-handled interrupts.
+
+config ARCH_HAS_THREAD_NAME_HOOK
+	bool
+	help
+	  The architecture provides a hook to handle thread name changes beyond
+	  just storing it in the kernel structure.
+
+config TOOLCHAIN_SUPPORTS_THREAD_LOCAL_STORAGE
+	bool
+	default y if "$(ZEPHYR_TOOLCHAIN_VARIANT)" = "zephyr" || "$(ZEPHYR_TOOLCHAIN_SUPPORTS_THREAD_LOCAL_STORAGE)" = "y"
+	help
+	  Hidden option to signal that toolchain supports generating code
+	  with thread local storage.
+
+config THREAD_LOCAL_STORAGE
+	bool "Thread Local Storage (TLS)"
+	depends on ARCH_HAS_THREAD_LOCAL_STORAGE && TOOLCHAIN_SUPPORTS_THREAD_LOCAL_STORAGE
+	select NEED_LIBC_MEM_PARTITION if (CPU_CORTEX_M && USERSPACE)
+	help
+	  This option enables thread local storage (TLS) support in kernel.
+
+config KERNEL_WHOLE_ARCHIVE
+	bool
+	help
+	  This option forces every object file in the libkernel.a archive
+	  to be included, rather than searching the archive for required object files.
+
+config TOOLCHAIN_SUPPORTS_STATIC_INIT_GNU
+	# As of today, we don't know of any toolchains that don't create
+	# either .ctors or .init_array sections containing initializer
+	# addresses in a fashion compatible with how Zephyr uses them.
+	def_bool y
+
+config STATIC_INIT_GNU
+	bool "Support GNU-compatible initializers and constructors"
+	default y if CPP || NATIVE_LIBRARY || COVERAGE
+	depends on TOOLCHAIN_SUPPORTS_STATIC_INIT_GNU
+	depends on !CMAKE_LINKER_GENERATOR
+	help
+	  GNU-compatible initialization of static objects. This is required for
+	  C++ constructor support as well as for initializer functions as
+	  defined by GNU-compatible toolchains. This increases the size of
+	  Zephyr binaries by around 24 bytes. If you know your application
+	  doesn't need any initializers, you can disable this option. The linker
+	  will emit an error if constructors are needed and this option has been
+	  disabled.
+
+config KERNEL_NO_LTO
+	bool
+	depends on LTO
+	depends on XIP
+	help
+	  Some SoCs require kernel code to be placed in RAM, which makes link-time
+	  optimization (LTO) unsuitable for these files (-fno-lto). Disabling LTO
+	  allows the affected code to be linked as separate objects and placed in
+	  specific memory regions.
+
+	  Running kernel code from RAM can improve execution performance, especially
+	  for timing-critical routines or context switch paths.

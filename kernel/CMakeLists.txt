@@ -10,17 +10,6 @@ zephyr_syscall_header(
   ${ZEPHYR_BASE}/include/zephyr/sys/time_units.h
 )
 
-# Helper macro to append files to the kernel_files list
-macro(kernel_sources_ifdef feature_toggle)
-  if(${${feature_toggle}})
-    list(APPEND kernel_files ${ARGN})
-  endif()
-endmacro()
-
-macro(kernel_sources)
-    list(APPEND kernel_files ${ARGN})
-endmacro()
-
 if(NOT CONFIG_ERRNO_IN_TLS AND NOT CONFIG_LIBC_ERRNO)
   zephyr_syscall_header(${ZEPHYR_BASE}/include/zephyr/sys/errno_private.h)
 endif()
@@ -60,77 +49,8 @@ add_library(kernel)
 # FIXME: SHADOW_VARS: Remove this once we have enabled -Wshadow globally.
 add_compile_options($<TARGET_PROPERTY:compiler,warning_shadow_variables>)
 
-kernel_sources(
-  main_weak.c
-  banner.c
-  busy_wait.c
-  device.c
-  errno.c
-  fatal.c
-  init.c
-  kheap.c
-  mem_slab.c
-  float.c
-  version.c
-  )
-
-# Toolchain workaround: on ARM Thumb, gcc will normally enable
-# -fomit-frame-pointer at all optimization levels except -O0.  When
-# frame pointers ARE enabled, gcc will also infuriatingly disallow a
-# clobber of the r7 frame pointer register in inline assembly
-# (vs. just spilling filling as needed).  Our optimized arch_switch
-# requires the ability to clobber this (callee-saved) register.  Turn
-# the flag back on for the two files that need it.  (The error
-# behavior only gets modified at the level of a whole file, I tried
-# #pragmas and attributes to change the code generation for the
-# specific functions without success).
-if(CONFIG_CPU_CORTEX_M)
-  if(CONFIG_NO_OPTIMIZATIONS)
-    if(${COMPILER} STREQUAL "gcc")
-      set_source_files_properties(init.c PROPERTIES COMPILE_OPTIONS -fomit-frame-pointer)
-      set_source_files_properties(sched.c PROPERTIES COMPILE_OPTIONS -fomit-frame-pointer)
-    endif()
-  endif()
-endif()
-
-kernel_sources_ifdef(CONFIG_MULTITHREADING
-  idle.c
-  mailbox.c
-  msg_q.c
-  mutex.c
-  queue.c
-  sem.c
-  stack.c
-  system_work_q.c
-  work.c
-  condvar.c
-  thread.c
-  sched.c
-  pipe.c
-  )
-
-if(CONFIG_MULTITHREADING)
-if(CONFIG_SCHED_SCALABLE OR CONFIG_WAITQ_SCALABLE)
-kernel_sources(priority_queues.c)
-endif()
-add_subdirectory_ifdef(CONFIG_SMP smp)
-else() # CONFIG_MULTITHREADING
-kernel_sources(nothread.c)
-endif() # CONFIG_MULTITHREADING
-
-
-kernel_sources_ifdef(CONFIG_TIMESLICING timeslicing.c)
-kernel_sources_ifdef(CONFIG_SPIN_VALIDATE spinlock_validate.c)
-kernel_sources_ifdef(CONFIG_IRQ_OFFLOAD irq_offload.c)
-kernel_sources_ifdef(CONFIG_BOOTARGS boot_args.c)
-kernel_sources_ifdef(CONFIG_THREAD_MONITOR thread_monitor.c)
-kernel_sources_ifdef(CONFIG_DEMAND_PAGING_STATS paging/statistics.c)
-
-target_sources(kernel PRIVATE ${kernel_files})
-
 # Kernel files has the macro __ZEPHYR_SUPERVISOR__ set so that it
 # optimizes the code when userspace is enabled.
-
 set_target_properties(
   kernel
   PROPERTIES
@@ -138,61 +58,15 @@ set_target_properties(
   __ZEPHYR_SUPERVISOR__
   )
 
-target_sources_ifdef(CONFIG_REQUIRES_STACK_CANARIES   kernel PRIVATE compiler_stack_protect.c)
-target_sources_ifdef(CONFIG_SYS_CLOCK_EXISTS      kernel PRIVATE timeout.c timer.c)
-if(CONFIG_TIMER_READS_ITS_FREQUENCY_AT_RUNTIME OR CONFIG_SYSTEM_CLOCK_HW_CYCLES_PER_SEC_RUNTIME_UPDATE)
-  target_sources(kernel PRIVATE sys_clock_hw_cycles.c)
-endif()
-target_sources_ifdef(CONFIG_ATOMIC_OPERATIONS_C   kernel PRIVATE atomic_c.c)
-target_sources_ifdef(CONFIG_MMU                   kernel PRIVATE mmu.c)
-target_sources_ifdef(CONFIG_POLL                  kernel PRIVATE poll.c)
-target_sources_ifdef(CONFIG_EVENTS                kernel PRIVATE events.c)
-target_sources_ifdef(CONFIG_SCHED_THREAD_USAGE    kernel PRIVATE usage.c)
-target_sources_ifdef(CONFIG_OBJ_CORE              kernel PRIVATE obj_core.c)
+add_subdirectory(core)
+add_subdirectory(ipc)
+add_subdirectory(timing)
+add_subdirectory(memory)
+add_subdirectory(misc)
 
-if(${CONFIG_KERNEL_MEM_POOL})
-  target_sources(kernel PRIVATE mempool.c)
-
-  if(CONFIG_HEAP_MEM_POOL_IGNORE_MIN)
-    set(final_heap_size ${CONFIG_HEAP_MEM_POOL_SIZE})
-  else()
-    # Import all custom HEAP_MEM_POOL size requirements
-    import_kconfig(CONFIG_HEAP_MEM_POOL_ADD_SIZE_ ${DOTCONFIG} add_size_keys)
-
-    # Calculate the sum of all "ADD_SIZE" requirements
-    set(add_size_sum 0)
-    foreach(add_size ${add_size_keys})
-      math(EXPR add_size_sum "${add_size_sum} + ${${add_size}}")
-    endforeach()
-
-    if(CONFIG_HEAP_MEM_POOL_SIZE LESS "${add_size_sum}")
-      # Only warn if default value 0 has been modified
-      if(NOT CONFIG_HEAP_MEM_POOL_SIZE EQUAL 0)
-        message(WARNING "
-        CONFIG_HEAP_MEM_POOL_SIZE is less than requested minimum:
-          ${CONFIG_HEAP_MEM_POOL_SIZE} < ${add_size_sum}
-        Setting the system heap size to ${add_size_sum}")
-      endif()
-
-      set(final_heap_size ${add_size_sum})
-    else()
-      # CONFIG_HEAP_MEM_POOL_SIZE was greater than the sum of the requirements
-      set(final_heap_size ${CONFIG_HEAP_MEM_POOL_SIZE})
-    endif()
-
-  endif()
-
-  zephyr_compile_definitions(K_HEAP_MEM_POOL_SIZE=${final_heap_size})
-endif()
-
+add_subdirectory_ifdef(CONFIG_SMP smp)
 add_subdirectory_ifdef(CONFIG_USERSPACE userspace)
 add_subdirectory(sys)
-
-if(${CONFIG_DYNAMIC_THREAD})
-  target_sources(kernel PRIVATE dynamic.c)
-else()
-  target_sources(kernel PRIVATE dynamic_disabled.c)
-endif()
 
 target_include_directories(kernel PRIVATE
   ${ZEPHYR_BASE}/kernel/include

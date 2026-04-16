@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) The Zephyr Project Contributors
+
+# MMU and demand-paging configuration is handled by Kconfig.vm at the
+# top level. This file is reserved for memory-subsystem options that
+# do not fit elsewhere.

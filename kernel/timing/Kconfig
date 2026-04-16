@@ -1,0 +1,138 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) The Zephyr Project Contributors
+
+menu "Timer API Options"
+
+config TIMESLICING
+	bool "Thread time slicing"
+	default y
+	depends on SYS_CLOCK_EXISTS && (NUM_PREEMPT_PRIORITIES != 0)
+	help
+	  This option enables time slicing between preemptible threads of
+	  equal priority.
+
+config TIMESLICE_SIZE
+	int "Time slice size (in ms)"
+	default 20
+	range 0 $(INT32_MAX)
+	depends on TIMESLICING
+	help
+	  This option specifies the maximum amount of time a thread can execute
+	  before other threads of equal priority are given an opportunity to run.
+	  A time slice size of zero means "no limit" (i.e. an infinitely large
+	  time slice).
+
+config TIMESLICE_PRIORITY
+	int "Time slicing thread priority ceiling"
+	default 0
+	range 0 NUM_PREEMPT_PRIORITIES
+	depends on TIMESLICING
+	help
+	  This option specifies the thread priority level at which time slicing
+	  takes effect; threads having a higher priority than this ceiling are
+	  not subject to time slicing.
+
+config TIMESLICE_PER_THREAD
+	bool "Support per-thread timeslice values"
+	depends on TIMESLICING
+	help
+	  When set, this enables an API for setting timeslice values on
+	  a per-thread basis, with an application callback invoked when
+	  a thread reaches the end of its timeslice.
+
+config TIMER_OBSERVER
+	bool "Support extension points for k_timer lifecycle"
+	help
+	  Adds iterable-section support for observing k_timer events.
+	  Supports extending timer behavior without kernel changes.
+
+endmenu
+
+config SYS_CLOCK_TICKS_PER_SEC
+	int "System tick frequency (in ticks/second)"
+	default 100 if QEMU_TARGET || SOC_POSIX
+	default 10000 if TICKLESS_KERNEL
+	default 100
+	help
+	  This option specifies the nominal frequency of the system clock in Hz.
+
+	  For asynchronous timekeeping, the kernel defines a "ticks" concept. A
+	  "tick" is the internal count in which the kernel does all its internal
+	  uptime and timeout bookkeeping. Interrupts are expected to be delivered
+	  on tick boundaries to the extent practical, and no fractional ticks
+	  are tracked.
+
+	  The choice of tick rate is configurable by this option. Also the number
+	  of cycles per tick should be chosen so that 1 millisecond is exactly
+	  represented by an integral number of ticks. Defaults on most hardware
+	  platforms (ones that support setting arbitrary interrupt timeouts) are
+	  expected to be in the range of 10 kHz, with software emulation
+	  platforms and legacy drivers using a more traditional 100 Hz value.
+
+	  Note that when available and enabled, in "tickless" mode
+	  this config variable specifies the minimum available timing
+	  granularity, not necessarily the number or frequency of
+	  interrupts delivered to the kernel.
+
+	  A value of 0 completely disables timer support in the kernel.
+
+config SYS_CLOCK_HW_CYCLES_PER_SEC
+	int "System clock's h/w timer frequency"
+	default 0 if TIMER_READS_ITS_FREQUENCY_AT_RUNTIME
+	depends on SYS_CLOCK_EXISTS
+	help
+	  This option specifies the frequency of the hardware timer used for the
+	  system clock (in Hz). This option is set by the SOC's or board's Kconfig file
+	  and the user should generally avoid modifying it via the menu configuration.
+
+config SYS_CLOCK_EXISTS
+	bool "System clock exists and is enabled"
+	default y
+	help
+	  This option specifies that the kernel has timer support.
+
+	  Some device configurations can eliminate significant code if
+	  this is disabled.  Obviously timeout-related APIs will not
+	  work when disabled.
+
+config TIMEOUT_64BIT
+	bool "Store kernel timeouts in 64 bit precision"
+	default y
+	help
+	  When this option is true, the k_ticks_t values passed to
+	  kernel APIs will be a 64 bit quantity, allowing the use of
+	  larger values (and higher precision tick rates) without fear
+	  of overflowing the 32 bit word.  This feature also gates the
+	  availability of absolute timeout values (which require the
+	  extra precision).
+
+config SYS_CLOCK_MAX_TIMEOUT_DAYS
+	int "Max timeout (in days) used in conversions"
+	default 365
+	help
+	  Value is used in the time conversion static inline function to determine
+	  at compile time which algorithm to use. One algorithm is faster, takes
+	  less code but may overflow if multiplication of source and target
+	  frequency exceeds 64 bits. Second algorithm prevents that. Faster
+	  algorithm is selected for conversion if maximum timeout represented in
+	  source frequency domain multiplied by target frequency fits in 64 bits.
+
+config BUSYWAIT_CPU_LOOPS_PER_USEC
+	int "Number of CPU loops per microsecond for crude busy looping"
+	depends on !SYS_CLOCK_EXISTS && !ARCH_HAS_CUSTOM_BUSY_WAIT
+	default 500
+	help
+	  Calibration for crude CPU based busy loop duration. The default
+	  is assuming 1 GHz CPU and 2 cycles per loop. Reality is certainly
+	  much worse but all we want here is a ball-park figure that ought
+	  to be good enough for the purpose of being able to configure out
+	  system timer support. If accuracy is very important then
+	  implementing arch_busy_wait() should be considered.
+
+config TICKLESS_KERNEL
+	bool "Tickless kernel"
+	default y if TICKLESS_CAPABLE
+	depends on TICKLESS_CAPABLE
+	help
+	  This option enables a fully event driven kernel. Periodic system
+	  clock interrupt generation would be stopped at all times.
