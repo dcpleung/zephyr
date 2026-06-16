@@ -5,6 +5,7 @@ board:
   socs:
   - name: dc233c
     variants:
+    - name: call0
     - name: mmu
   - name: sample_controller32
     variants:
