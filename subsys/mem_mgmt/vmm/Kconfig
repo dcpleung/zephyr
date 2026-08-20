@@ -1,0 +1,33 @@
+# Copyright (c) 2026 Intel Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+
+if KERNEL_VM_SUPPORT
+
+menu "Virtual Memory Manager (VMM)"
+
+choice MEM_MGMT_VMM_IMPL
+	prompt "VMM Implementation"
+	default MEM_MGMT_VMM_IMPL_ARCH if MMU
+	default MEM_MGMT_VMM_IMPL_NONE
+	help
+	  Select the implementation of the low-level virtual memory operations
+	  (the vmm_*() APIs used for page mapping/unmapping and,
+	  when demand paging is enabled, page-in/out).
+
+config MEM_MGMT_VMM_IMPL_ARCH
+	bool "Architecture"
+	help
+	  Forward the virtual memory manager operations to the corresponding
+	  architecture provided arch_mem_*() implementation.
+
+config MEM_MGMT_VMM_IMPL_NONE
+	bool "None"
+	help
+	  No virtual memory manager. All vmm_*() APIs will return -ENOTSUP.
+
+endchoice # MEM_MGMT_VMM_IMPL
+
+endmenu # VMM
+
+endif # KERNEL_VM_SUPPORT

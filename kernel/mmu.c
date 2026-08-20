@@ -15,6 +15,7 @@
 #include <zephyr/internal/syscall_handler.h>
 #include <zephyr/toolchain.h>
 #include <zephyr/linker/linker-defs.h>
+#include <zephyr/mem_mgmt/vmm.h>
 #include <zephyr/sys/bitarray.h>
 #include <zephyr/sys/check.h>
 #include <zephyr/sys/math_extras.h>
@@ -567,8 +568,8 @@ static int map_anon_page(void *addr, uint32_t flags, bool *recovered)
 	}
 
 	phys = k_mem_page_frame_to_phys(pf);
-	ret = arch_mem_map(addr, phys, CONFIG_MMU_PAGE_SIZE, flags);
-	__ASSERT(ret == 0, "%s: arch_mem_map failed %d\n", __func__, ret);
+	ret = vmm_impl_mem_map(addr, phys, CONFIG_MMU_PAGE_SIZE, flags);
+	__ASSERT(ret == 0, "%s: vmm_impl_mem_map failed %d\n", __func__, ret);
 	if (ret != 0) {
 #ifdef CONFIG_USERSPACE
 		/* The mapping above may have already succeeded in some
@@ -636,7 +637,7 @@ static int unmap_anon_pages(void *virt, size_t sz)
 		enum arch_page_location status;
 		uintptr_t location;
 
-		status = arch_page_location_get(pos, &location);
+		status = vmm_impl_page_location_get(pos, &location);
 		switch (status) {
 		case ARCH_PAGE_LOCATION_PAGED_OUT:
 			/*
@@ -701,8 +702,8 @@ static int unmap_anon_pages(void *virt, size_t sz)
 			goto unmap_anon_out;
 		}
 
-		ret = arch_mem_unmap(pos, CONFIG_MMU_PAGE_SIZE);
-		__ASSERT(ret == 0, "%s: arch_mem_unmap() returned %d", __func__, ret);
+		ret = vmm_impl_mem_unmap(pos, CONFIG_MMU_PAGE_SIZE);
+		__ASSERT(ret == 0, "%s: vmm_impl_mem_unmap() returned %d", __func__, ret);
 		if (ret != 0) {
 			/* Fail to unmap. Must bail without releasing any resources
 			 * as the page is still mapped.
@@ -747,7 +748,7 @@ static bool undo_demand_mapped_pages(void *virt, size_t sz)
 
 	/* Undo the pages mapped before the failure. */
 	VIRT_FOREACH(virt, sz, undo_pos) {
-		ret = arch_mem_unmap(undo_pos, CONFIG_MMU_PAGE_SIZE);
+		ret = vmm_impl_mem_unmap(undo_pos, CONFIG_MMU_PAGE_SIZE);
 		__ASSERT(ret == 0, "%s: cannot undo mapped pages %d", __func__, ret);
 
 		/* Failed to undo one mapped page. Though we still
@@ -816,15 +817,15 @@ void *k_mem_map_phys_guard(uintptr_t phys, size_t size, uint32_t flags, bool is_
 	 * some memory domains, so the virtual region cannot be freed for
 	 * reuse.
 	 */
-	ret = arch_mem_unmap(region, CONFIG_MMU_PAGE_SIZE);
-	__ASSERT(ret == 0, "%s: arch_mem_unmap() returned %d", __func__, ret);
+	ret = vmm_impl_mem_unmap(region, CONFIG_MMU_PAGE_SIZE);
+	__ASSERT(ret == 0, "%s: vmm_impl_mem_unmap() returned %d", __func__, ret);
 	if (ret != 0) {
 		dst = NULL;
 		goto out;
 	}
 
-	ret = arch_mem_unmap(region + CONFIG_MMU_PAGE_SIZE + size, CONFIG_MMU_PAGE_SIZE);
-	__ASSERT(ret == 0, "%s: arch_mem_unmap() returned %d", __func__, ret);
+	ret = vmm_impl_mem_unmap(region + CONFIG_MMU_PAGE_SIZE + size, CONFIG_MMU_PAGE_SIZE);
+	__ASSERT(ret == 0, "%s: vmm_impl_mem_unmap() returned %d", __func__, ret);
 	if (ret != 0) {
 		dst = NULL;
 		goto out;
@@ -840,11 +841,12 @@ void *k_mem_map_phys_guard(uintptr_t phys, size_t size, uint32_t flags, bool is_
 		if ((flags & K_MEM_MAP_LOCK) == 0) {
 			flags |= K_MEM_MAP_UNPAGED;
 			VIRT_FOREACH(dst, size, pos) {
-				ret = arch_mem_map(pos,
-						   uninit ? ARCH_UNPAGED_ANON_UNINIT
-							  : ARCH_UNPAGED_ANON_ZERO,
-						   CONFIG_MMU_PAGE_SIZE, flags);
-				__ASSERT(ret == 0, "%s: arch_mem_map failed %d\n", __func__, ret);
+				ret = vmm_impl_mem_map(pos,
+						       uninit ? ARCH_UNPAGED_ANON_UNINIT
+							      : ARCH_UNPAGED_ANON_ZERO,
+						       CONFIG_MMU_PAGE_SIZE, flags);
+				__ASSERT(ret == 0, "%s: vmm_impl_mem_map failed %d\n", __func__,
+					 ret);
 				if (ret != 0) {
 					size_t unmap_sz = pos - dst;
 
@@ -906,11 +908,11 @@ void *k_mem_map_phys_guard(uintptr_t phys, size_t size, uint32_t flags, bool is_
 		}
 	} else {
 		/* Mapping known physical memory. */
-		ret = arch_mem_map(dst, phys, size, flags);
-		__ASSERT(ret == 0, "%s: arch_mem_map failed %d\n", __func__, ret);
+		ret = vmm_impl_mem_map(dst, phys, size, flags);
+		__ASSERT(ret == 0, "%s: vmm_impl_mem_map failed %d\n", __func__, ret);
 		if (ret != 0) {
 			/* Clean up any partial mapping left behind. */
-			ret = arch_mem_unmap(dst, size);
+			ret = vmm_impl_mem_unmap(dst, size);
 			__ASSERT(ret == 0, "%s: cannot undo mapped pages %d", __func__, ret);
 
 			dst = NULL;
@@ -968,7 +970,7 @@ void k_mem_unmap_phys_guard(void *addr, size_t size, bool is_anon)
 	 * using k_mem_map().
 	 */
 	pos = addr;
-	ret = arch_page_phys_get(pos - CONFIG_MMU_PAGE_SIZE, NULL);
+	ret = vmm_impl_page_phys_get(pos - CONFIG_MMU_PAGE_SIZE, NULL);
 	__ASSERT(ret != 0,
 		 "%s: cannot find preceding guard page for (%p, %zu)",
 		 __func__, addr, size);
@@ -976,7 +978,7 @@ void k_mem_unmap_phys_guard(void *addr, size_t size, bool is_anon)
 		goto out;
 	}
 
-	ret = arch_page_phys_get(pos + size, NULL);
+	ret = vmm_impl_page_phys_get(pos + size, NULL);
 	__ASSERT(ret != 0,
 		 "%s: cannot find succeeding guard page for (%p, %zu)",
 		 __func__, addr, size);
@@ -1002,8 +1004,8 @@ void k_mem_unmap_phys_guard(void *addr, size_t size, bool is_anon)
 		 * have been unmapped. We just need to unmapped the in-between
 		 * region [addr, (addr + size)).
 		 */
-		ret = arch_mem_unmap(addr, size);
-		__ASSERT(ret == 0, "%s: arch_mem_unmap() returned %d", __func__, ret);
+		ret = vmm_impl_mem_unmap(addr, size);
+		__ASSERT(ret == 0, "%s: vmm_impl_mem_unmap() returned %d", __func__, ret);
 		if (ret != 0) {
 			/* Fail to unmap. Must bail without releasing any resources
 			 * as some pages are still be mapped.
@@ -1038,21 +1040,21 @@ int k_mem_update_flags(void *addr, size_t size, uint32_t flags)
 	 * by unmapping and remapping the same physical memory using new flags.
 	 */
 
-	ret = arch_page_phys_get(addr, &phys);
+	ret = vmm_impl_page_phys_get(addr, &phys);
 	if (ret < 0) {
 		goto out;
 	}
 
 	/* TODO: detect and handle paged-out memory as well */
 
-	ret = arch_mem_unmap(addr, size);
-	__ASSERT(ret == 0, "%s: arch_mem_unmap failed %d\n", __func__, ret);
+	ret = vmm_impl_mem_unmap(addr, size);
+	__ASSERT(ret == 0, "%s: vmm_impl_mem_unmap failed %d\n", __func__, ret);
 	if (ret != 0) {
 		goto out;
 	}
 
-	ret = arch_mem_map(addr, phys, size, flags);
-	__ASSERT(ret == 0, "%s: arch_mem_map failed %d\n", __func__, ret);
+	ret = vmm_impl_mem_map(addr, phys, size, flags);
+	__ASSERT(ret == 0, "%s: vmm_impl_mem_map failed %d\n", __func__, ret);
 
 out:
 	k_spin_unlock(&z_mm_lock, key);
@@ -1170,11 +1172,11 @@ void k_mem_map_phys_bare(uint8_t **virt_ptr, uintptr_t phys, size_t size, uint32
 		 "wraparound for virtual address %p (size %zu)",
 		 dest_addr, size);
 
-	LOG_DBG("arch_mem_map(%p, 0x%lx, %zu, %x) offset %lu", (void *)dest_addr,
+	LOG_DBG("vmm_impl_mem_map(%p, 0x%lx, %zu, %x) offset %lu", (void *)dest_addr,
 		aligned_phys, aligned_size, flags, addr_offset);
 
-	ret = arch_mem_map(dest_addr, aligned_phys, aligned_size, flags);
-	__ASSERT(ret == 0, "%s: arch_mem_map failed %d\n", __func__, ret);
+	ret = vmm_impl_mem_map(dest_addr, aligned_phys, aligned_size, flags);
+	__ASSERT(ret == 0, "%s: vmm_impl_mem_map failed %d\n", __func__, ret);
 	if (ret != 0) {
 		goto fail;
 	}
@@ -1184,7 +1186,7 @@ void k_mem_map_phys_bare(uint8_t **virt_ptr, uintptr_t phys, size_t size, uint32
 	return;
 fail:
 	/* May re-visit this in the future, but for now running out of
-	 * virtual address space or failing the arch_mem_map() call is
+	 * virtual address space or failing the vmm_impl_mem_map() call is
 	 * an unrecoverable situation.
 	 *
 	 * Other problems not related to resource exhaustion we leave as
@@ -1212,11 +1214,11 @@ void k_mem_unmap_phys_bare(uint8_t *virt, size_t size)
 
 	key = k_spin_lock(&z_mm_lock);
 
-	LOG_DBG("arch_mem_unmap(0x%lx, %zu) offset %lu",
+	LOG_DBG("vmm_impl_mem_unmap(0x%lx, %zu) offset %lu",
 		aligned_virt, aligned_size, addr_offset);
 
-	ret = arch_mem_unmap(UINT_TO_POINTER(aligned_virt), aligned_size);
-	__ASSERT(ret == 0, "%s: arch_mem_unmap() returned %d", __func__, ret);
+	ret = vmm_impl_mem_unmap(UINT_TO_POINTER(aligned_virt), aligned_size);
+	__ASSERT(ret == 0, "%s: vmm_impl_mem_unmap() returned %d", __func__, ret);
 	if (ret != 0) {
 		/* Fail to unmap. We cannot free the virtual memory region
 		 * as some pages are still be mapped.
@@ -1296,8 +1298,8 @@ static void z_paging_ondemand_section_map(void)
 	VIRT_FOREACH(lnkr_ondemand_text_start, size, addr) {
 		k_mem_paging_backing_store_location_query(addr, &location);
 
-		ret = arch_mem_map(addr, location, CONFIG_MMU_PAGE_SIZE, flags);
-		__ASSERT(ret == 0, "arch_mem_map() returned %d", ret);
+		ret = vmm_impl_mem_map(addr, location, CONFIG_MMU_PAGE_SIZE, flags);
+		__ASSERT(ret == 0, "vmm_impl_mem_map() returned %d", ret);
 		if (ret != 0) {
 			k_panic();
 		}
@@ -1311,8 +1313,8 @@ static void z_paging_ondemand_section_map(void)
 	VIRT_FOREACH(lnkr_ondemand_rodata_start, size, addr) {
 		k_mem_paging_backing_store_location_query(addr, &location);
 
-		ret = arch_mem_map(addr, location, CONFIG_MMU_PAGE_SIZE, flags);
-		__ASSERT(ret == 0, "arch_mem_map() returned %d", ret);
+		ret = vmm_impl_mem_map(addr, location, CONFIG_MMU_PAGE_SIZE, flags);
+		__ASSERT(ret == 0, "vmm_impl_mem_map() returned %d", ret);
 		if (ret != 0) {
 			k_panic();
 		}
@@ -1559,7 +1561,7 @@ static int page_frame_prepare_locked(struct k_mem_page_frame *pf, bool *dirty_pt
 	}
 
 	if (dirty || page_fault) {
-		arch_mem_scratch(phys);
+		vmm_impl_mem_scratch(phys);
 	}
 
 	if (k_mem_page_frame_is_mapped(pf)) {
@@ -1569,7 +1571,7 @@ static int page_frame_prepare_locked(struct k_mem_page_frame *pf, bool *dirty_pt
 			LOG_ERR("out of backing store memory");
 			return -ENOMEM;
 		}
-		arch_mem_page_out(k_mem_page_frame_to_virt(pf), *location_ptr);
+		vmm_impl_mem_page_out(k_mem_page_frame_to_virt(pf), *location_ptr);
 
 		if (IS_ENABLED(CONFIG_EVICTION_TRACKING)) {
 			k_mem_paging_eviction_remove(pf);
@@ -1612,7 +1614,7 @@ static int do_mem_evict(void *addr)
 #endif
 #endif /* CONFIG_DEMAND_PAGING_ALLOW_IRQ */
 	key = k_spin_lock(&z_mm_lock);
-	flags = arch_page_info_get(addr, &phys, false);
+	flags = vmm_impl_page_info_get(addr, &phys, false);
 	__ASSERT((flags & ARCH_DATA_PAGE_NOT_MAPPED) == 0,
 		 "address %p isn't mapped", addr);
 	if ((flags & ARCH_DATA_PAGE_LOADED) == 0) {
@@ -1703,7 +1705,7 @@ int k_mem_page_frame_evict(uintptr_t phys)
 		ret = 0;
 		goto out;
 	}
-	flags = arch_page_info_get(k_mem_page_frame_to_virt(pf), NULL, false);
+	flags = vmm_impl_page_info_get(k_mem_page_frame_to_virt(pf), NULL, false);
 	/* Shouldn't ever happen */
 	__ASSERT((flags & ARCH_DATA_PAGE_LOADED) != 0, "data page not loaded");
 	dirty = (flags & ARCH_DATA_PAGE_DIRTY) != 0;
@@ -1893,7 +1895,7 @@ static bool do_page_fault(void *addr, bool pin)
 	key = k_spin_lock(&z_mm_lock);
 	faulting_thread = _current;
 
-	status = arch_page_location_get(addr, &page_in_location);
+	status = vmm_impl_page_location_get(addr, &page_in_location);
 	if (status == ARCH_PAGE_LOCATION_BAD) {
 		/* Return false to treat as a fatal error */
 		result = false;
@@ -1975,7 +1977,7 @@ static bool do_page_fault(void *addr, bool pin)
 		k_mem_page_frame_set(pf, K_MEM_PAGE_FRAME_PINNED);
 	}
 
-	arch_mem_page_in(addr, k_mem_page_frame_to_phys(pf));
+	vmm_impl_mem_page_in(addr, k_mem_page_frame_to_phys(pf));
 	k_mem_paging_backing_store_page_finalize(pf, page_in_location);
 	if (IS_ENABLED(CONFIG_EVICTION_TRACKING) && (!pin)) {
 		k_mem_paging_eviction_add(pf);
@@ -2052,7 +2054,7 @@ static void do_mem_unpin(void *addr)
 	uintptr_t flags, phys;
 
 	key = k_spin_lock(&z_mm_lock);
-	flags = arch_page_info_get(addr, &phys, false);
+	flags = vmm_impl_page_info_get(addr, &phys, false);
 	__ASSERT((flags & ARCH_DATA_PAGE_NOT_MAPPED) == 0,
 		 "invalid data page at %p", addr);
 	if ((flags & ARCH_DATA_PAGE_LOADED) != 0) {

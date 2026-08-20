@@ -20,6 +20,10 @@
 #include <zephyr/sys/hash_function.h>
 #include <zephyr/sys/minmax.h>
 
+#ifdef CONFIG_MMU
+#include <zephyr/mem_mgmt/vmm.h>
+#endif
+
 #define _page_size COND_CODE_1(CONFIG_MMU, (CONFIG_MMU_PAGE_SIZE), (CONFIG_POSIX_PAGE_SIZE))
 
 static const struct fd_op_vtable shm_vtable;
@@ -85,7 +89,7 @@ static void shm_obj_remove(struct shm_obj *shm)
 		if (IS_ENABLED(CONFIG_MMU)) {
 			uintptr_t phys = 0;
 
-			if (arch_page_phys_get(shm->mem, &phys) == 0) {
+			if (vmm_impl_page_phys_get(shm->mem, &phys) == 0) {
 				k_mem_unmap(shm->mem, ROUND_UP(shm->size, _page_size));
 			}
 		} else {

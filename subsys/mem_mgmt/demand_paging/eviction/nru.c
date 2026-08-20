@@ -7,10 +7,10 @@
  */
 #include <zephyr/kernel.h>
 #include <mmu.h>
-#include <kernel_arch_interface.h>
 #include <zephyr/init.h>
 
 #include <zephyr/kernel/mm/demand_paging.h>
+#include <zephyr/mem_mgmt/vmm.h>
 
 /* The accessed and dirty states of each page frame are used to create
  * a hierarchy with a numerical value. When evicting a page, try to evict
@@ -36,8 +36,7 @@ static void nru_periodic_update(struct k_timer *timer)
 		}
 
 		/* Clear accessed bit in page tables */
-		(void)arch_page_info_get(k_mem_page_frame_to_virt(pf),
-					 NULL, true);
+		(void)vmm_impl_page_info_get(k_mem_page_frame_to_virt(pf), NULL, true);
 	}
 
 	irq_unlock(key);
@@ -67,7 +66,7 @@ struct k_mem_page_frame *k_mem_paging_eviction_select(bool *dirty_ptr)
 			continue;
 		}
 
-		flags = arch_page_info_get(k_mem_page_frame_to_virt(pf), NULL, false);
+		flags = vmm_impl_page_info_get(k_mem_page_frame_to_virt(pf), NULL, false);
 		accessed = (flags & ARCH_DATA_PAGE_ACCESSED) != 0UL;
 		dirty = (flags & ARCH_DATA_PAGE_DIRTY) != 0UL;
 

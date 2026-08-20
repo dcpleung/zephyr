@@ -10,6 +10,7 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/kernel/mm.h>
+#include <zephyr/mem_mgmt/vmm.h>
 #include <zephyr/sys/fdtable.h>
 #include <zephyr/posix/sys/mman.h>
 #include <zephyr/posix/unistd.h>
@@ -119,7 +120,7 @@ int munmap(void *addr, size_t len)
 
 	uintptr_t phys = 0;
 
-	if (arch_page_phys_get(addr, &phys) == 0) {
+	if (vmm_impl_page_phys_get(addr, &phys) == 0) {
 		k_mem_unmap(addr, ROUND_UP(len, _page_size));
 	}
 
