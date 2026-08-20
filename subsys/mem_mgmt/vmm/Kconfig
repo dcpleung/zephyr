@@ -1,0 +1,51 @@
+# Copyright (c) 2026 Intel Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+
+if KERNEL_VM_SUPPORT
+
+menu "Virtual Memory Manager (VMM)"
+
+choice MEM_MGMT_VMM_IMPL
+	prompt "VMM Implementation"
+	default MEM_MGMT_VMM_IMPL_ARCH
+	help
+	  Select the implementation of the low-level virtual memory operations
+	  (the vmm_*() APIs used for page mapping/unmapping and,
+	  when demand paging is enabled, page-in/out).
+
+config MEM_MGMT_VMM_IMPL_ARCH
+	bool "Architecture"
+	help
+	  Forward the virtual memory manager operations to the corresponding
+	  architecture provided arch_mem_*() implementation.
+
+	  vmm_impl_mem_map() -> arch_mem_map()
+	  vmm_impl_mem_unmap() -> arch_mem_unmap()
+	  vmm_impl_page_phys_get() -> arch_page_phys_get()
+	  vmm_impl_reserved_pages_update() -> arch_reserved_pages_update()
+	  vmm_impl_mem_page_out() -> arch_mem_page_out()
+	  vmm_impl_mem_page_in() -> arch_mem_page_in()
+	  vmm_impl_mem_scratch() -> arch_mem_scratch()
+
+config MEM_MGMT_VMM_IMPL_CUSTOM
+	bool "Custom"
+	help
+	  Custom implementation. Needs to implement the following functions:
+
+	    vmm_impl_mem_map()
+	    vmm_impl_mem_unmap()
+	    vmm_impl_page_phys_get()
+	    vmm_impl_reserved_pages_update()
+
+          Also needs to implement these for demand paging:
+
+	    vmm_impl_mem_page_out()
+	    vmm_impl_mem_page_in()
+	    vmm_impl_mem_scratch()
+
+endchoice # MEM_MGMT_VMM_IMPL
+
+endmenu # VMM
+
+endif # KERNEL_VM_SUPPORT
