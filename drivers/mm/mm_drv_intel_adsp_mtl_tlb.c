@@ -26,7 +26,7 @@
 #include <zephyr/drivers/mm/mm_drv_bank.h>
 #include <zephyr/debug/sparse.h>
 #include <zephyr/cache.h>
-#include <kernel_arch_interface.h>
+#include <zephyr/mem_mgmt/vmm.h>
 
 #define SRAM_BANK_PAGE_NUM   (SRAM_BANK_SIZE / CONFIG_MM_DRV_PAGE_SIZE)
 
@@ -277,8 +277,8 @@ int sys_mm_drv_map_page(void *virt, uintptr_t phys, uint32_t flags)
 	tlb_entries[entry_idx] = entry;
 
 #ifdef CONFIG_MMU
-	ret = arch_mem_map(virt, va, CONFIG_MM_DRV_PAGE_SIZE, flags);
-	__ASSERT(ret == 0, "arch_mem_map() failed %d\n", ret);
+	ret = vmm_impl_mem_map(virt, va, CONFIG_MM_DRV_PAGE_SIZE, flags);
+	__ASSERT(ret == 0, "vmm_impl_mem_map() failed %d\n", ret);
 	if (ret != 0) {
 		/* TODO: properly handle failed arch_mem_map(). */
 		k_panic();
@@ -391,8 +391,8 @@ static int sys_mm_drv_unmap_page_wflush(void *virt, bool flush_data)
 	if (flush_data) {
 		sys_cache_data_flush_range(virt, CONFIG_MM_DRV_PAGE_SIZE);
 #ifdef CONFIG_MMU
-		ret = arch_mem_unmap(virt, CONFIG_MM_DRV_PAGE_SIZE);
-		__ASSERT(ret == 0, "arch_mem_unmap() failed %d\n", ret);
+		ret = vmm_impl_mem_unmap(virt, CONFIG_MM_DRV_PAGE_SIZE);
+		__ASSERT(ret == 0, "vmm_impl_mem_unmap() failed %d\n", ret);
 		if (ret != 0) {
 			k_panic();
 		}
@@ -480,8 +480,8 @@ int sys_mm_drv_update_page_flags(void *virt, uint32_t flags)
 	tlb_entries[entry_idx] = entry;
 
 #ifdef CONFIG_MMU
-	ret = arch_mem_map(virt, va, CONFIG_MM_DRV_PAGE_SIZE, flags);
-	__ASSERT(ret == 0, "arch_mem_map() failed %d\n", ret);
+	ret = vmm_impl_mem_map(virt, va, CONFIG_MM_DRV_PAGE_SIZE, flags);
+	__ASSERT(ret == 0, "vmm_impl_mem_map() failed %d\n", ret);
 	if (ret != 0) {
 		/* TODO: properly handle failed arch_mem_map(); */
 		k_panic();
@@ -868,11 +868,11 @@ static void adsp_mm_save_context(void *storage_buffer)
 			tlb_entries[entry_idx] = entry;
 
 #ifdef CONFIG_MMU
-			int ret = arch_mem_map(UINT_TO_POINTER(phys_addr), phys_addr,
-					       CONFIG_MM_DRV_PAGE_SIZE,
-					       K_MEM_CACHE_WB | K_MEM_PERM_RW);
+			int ret = vmm_impl_mem_map(UINT_TO_POINTER(phys_addr), phys_addr,
+						   CONFIG_MM_DRV_PAGE_SIZE,
+						   K_MEM_CACHE_WB | K_MEM_PERM_RW);
 
-			__ASSERT(ret == 0, "arch_mem_map() failed %d\n", ret);
+			__ASSERT(ret == 0, "vmm_impl_mem_map() failed %d\n", ret);
 			if (ret != 0) {
 				/* TODO: properly handle failed arch_mem_map() */
 				k_panic();

@@ -8,6 +8,10 @@
 #include <zephyr/sys/atomic.h>
 #include <cmsis_os.h>
 
+#ifdef CONFIG_THREAD_STACK_MEM_MAPPED
+#include <zephyr/mem_mgmt/vmm.h>
+#endif /* CONFIG_THREAD_STACK_MEM_MAPPED */
+
 #define TOTAL_CMSIS_THREAD_PRIORITIES (osPriorityRealtime - osPriorityIdle + 1)
 
 static inline int _is_thread_cmsis_inactive(struct k_thread *thread)
@@ -51,7 +55,7 @@ void thread_abort_hook(struct k_thread *thread)
 
 #ifdef CONFIG_THREAD_STACK_MEM_MAPPED
 		/* The offset calculation below requires physical address. */
-		(void)arch_page_phys_get((void *)thread->stack_info.start, &stack_start);
+		(void)vmm_impl_page_phys_get((void *)thread->stack_info.start, &stack_start);
 #else
 		stack_start = thread->stack_info.start;
 #endif /* CONFIG_THREAD_STACK_MEM_MAPPED */
