@@ -17,7 +17,7 @@
 #include <zephyr/app_memory/mem_domain.h>
 #include <zephyr/kernel/mm.h>
 #include <zephyr/kernel/mm/demand_paging.h>
-#include <kernel_arch_interface.h>
+#include <zephyr/mem_mgmt/vmm.h>
 
 #include "common.h"
 
@@ -114,7 +114,7 @@ ZTEST(demand_paging_read_only, test_user_write_to_read_only_partition_is_fatal)
 	zassert_false(ro_write_succeeded, "read-only partition accepted a user write");
 
 #if defined(CONFIG_ARM64)
-	zassert_false(arch_page_info_get(ro_part_page, NULL, false) & ARCH_DATA_PAGE_DIRTY,
+	zassert_false(arch_page_info_get(ro_part_page, NULL, false) & VMM_DATA_PAGE_DIRTY,
 		      "read-only partition write marked the page dirty");
 #endif
 }

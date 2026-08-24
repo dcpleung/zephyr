@@ -204,7 +204,7 @@ enum vmm_page_location vmm_impl_page_location_get(void *addr, uintptr_t *locatio
  * and dirty states for the relevant entries in the system if the page is
  * mapped and not paged out.
  *
- * If @p clear_accessed is true, the ARCH_DATA_PAGE_ACCESSED flag will be reset.
+ * If @p clear_accessed is true, the VMM_DATA_PAGE_ACCESSED flag will be reset.
  * This function will report its prior state. If multiple mappings are in
  * use, this function clears accessed state in all of them.
  *
@@ -213,24 +213,24 @@ enum vmm_page_location vmm_impl_page_location_get(void *addr, uintptr_t *locatio
  *
  * The return value may have other bits set which the caller must ignore.
  *
- * Clearing accessed state for data pages that are not ARCH_DATA_PAGE_LOADED
+ * Clearing accessed state for data pages that are not VMM_DATA_PAGE_LOADED
  * is undefined behavior.
  *
- * ARCH_DATA_PAGE_DIRTY and ARCH_DATA_PAGE_ACCESSED bits in the return value
- * are only significant if ARCH_DATA_PAGE_LOADED is set, otherwise ignore
+ * VMM_DATA_PAGE_DIRTY and VMM_DATA_PAGE_ACCESSED bits in the return value
+ * are only significant if VMM_DATA_PAGE_LOADED is set, otherwise ignore
  * them.
  *
- * ARCH_DATA_PAGE_NOT_MAPPED bit in the return value is only significant
- * if ARCH_DATA_PAGE_LOADED is un-set, otherwise ignore it.
+ * VMM_DATA_PAGE_NOT_MAPPED bit in the return value is only significant
+ * if VMM_DATA_PAGE_LOADED is un-set, otherwise ignore it.
  *
  * @param[in]  addr           Virtual address of the page to get information on
  * @param[out] location       If non-NULL, updated with either physical page frame
  *                            address or backing store location depending on
- *                            ARCH_DATA_PAGE_LOADED state. This is not touched if
- *                            ARCH_DATA_PAGE_NOT_MAPPED.
- * @param[in]  clear_accessed Whether to clear ARCH_DATA_PAGE_ACCESSED state
+ *                            VMM_DATA_PAGE_LOADED state. This is not touched if
+ *                            VMM_DATA_PAGE_NOT_MAPPED.
+ * @param[in]  clear_accessed Whether to clear VMM_DATA_PAGE_ACCESSED state
  *
- * @retval Value with ARCH_DATA_PAGE_* bits set reflecting the data page
+ * @retval Value with VMM_DATA_PAGE_* bits set reflecting the data page
  *         configuration
  */
 uintptr_t vmm_impl_page_info_get(void *addr, uintptr_t *location, bool clear_accessed);

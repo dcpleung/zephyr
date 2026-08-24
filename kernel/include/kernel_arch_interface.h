@@ -471,54 +471,6 @@ void arch_mem_scratch(uintptr_t phys);
 enum vmm_page_location arch_page_location_get(void *addr, uintptr_t *location);
 
 /**
- * @def ARCH_DATA_PAGE_ACCESSED
- *
- * Bit indicating the data page was accessed since the value was last cleared.
- *
- * Used by marking eviction algorithms. Safe to set this if uncertain.
- *
- * This bit is undefined if ARCH_DATA_PAGE_LOADED is not set.
- */
-#ifdef __DOXYGEN__
-#define ARCH_DATA_PAGE_ACCESSED
-#endif
-
- /**
-  * @def ARCH_DATA_PAGE_DIRTY
-  *
-  * Bit indicating the data page, if evicted, will need to be paged out.
-  *
-  * Set if the data page was modified since it was last paged out, or if
-  * it has never been paged out before. Safe to set this if uncertain.
-  *
-  * This bit is undefined if ARCH_DATA_PAGE_LOADED is not set.
-  */
-#ifdef __DOXYGEN__
-#define ARCH_DATA_PAGE_DIRTY
-#endif
-
- /**
-  * @def ARCH_DATA_PAGE_LOADED
-  *
-  * Bit indicating that the data page is loaded into a physical page frame.
-  *
-  * If un-set, the data page is paged out or not mapped.
-  */
-#ifdef __DOXYGEN__
-#define ARCH_DATA_PAGE_LOADED
-#endif
-
-/**
- * @def ARCH_DATA_PAGE_NOT_MAPPED
- *
- * If ARCH_DATA_PAGE_LOADED is un-set, this will indicate that the page
- * is not mapped at all. This bit is undefined if ARCH_DATA_PAGE_LOADED is set.
- */
-#ifdef __DOXYGEN__
-#define ARCH_DATA_PAGE_NOT_MAPPED
-#endif
-
-/**
  * Retrieve page characteristics from the page table(s)
  *
  * The architecture is responsible for maintaining "accessed" and "dirty"

@@ -120,7 +120,7 @@ static void lru_pf_remove(uint32_t pf_idx)
 		uintptr_t flags = vmm_impl_page_info_get(k_mem_page_frame_to_virt(pf), NULL, true);
 
 		/* clearing the accessed flag expected only on loaded pages */
-		__ASSERT((flags & ARCH_DATA_PAGE_LOADED) != 0, "");
+		__ASSERT((flags & VMM_DATA_PAGE_LOADED) != 0, "");
 		ARG_UNUSED(flags);
 	}
 }
@@ -171,7 +171,7 @@ struct k_mem_page_frame *k_mem_paging_eviction_select(bool *dirty_ptr)
 	uintptr_t flags = vmm_impl_page_info_get(k_mem_page_frame_to_virt(pf), NULL, false);
 
 	__ASSERT(k_mem_page_frame_is_evictable(pf), "");
-	*dirty_ptr = ((flags & ARCH_DATA_PAGE_DIRTY) != 0);
+	*dirty_ptr = ((flags & VMM_DATA_PAGE_DIRTY) != 0);
 	return pf;
 }
 
