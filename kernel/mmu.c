@@ -634,12 +634,12 @@ static int unmap_anon_pages(void *virt, size_t sz)
 
 	VIRT_FOREACH(virt, sz, pos) {
 #ifdef CONFIG_DEMAND_PAGING
-		enum arch_page_location status;
+		enum vmm_page_location status;
 		uintptr_t location;
 
 		status = vmm_impl_page_location_get(pos, &location);
 		switch (status) {
-		case ARCH_PAGE_LOCATION_PAGED_OUT:
+		case VMM_PAGE_LOCATION_PAGED_OUT:
 			/*
 			 * No pf is associated with this mapping.
 			 * Simply get rid of the MMU entry and free
@@ -656,7 +656,7 @@ static int unmap_anon_pages(void *virt, size_t sz)
 			}
 
 			continue;
-		case ARCH_PAGE_LOCATION_PAGED_IN:
+		case VMM_PAGE_LOCATION_PAGED_IN:
 			/*
 			 * The page is in memory but it may not be
 			 * accessible in order to manage tracking
@@ -1834,7 +1834,7 @@ static bool do_page_fault(void *addr, bool pin)
 	struct k_mem_page_frame *pf;
 	k_spinlock_key_t key;
 	uintptr_t page_in_location, page_out_location;
-	enum arch_page_location status;
+	enum vmm_page_location status;
 	bool result;
 	bool dirty = false;
 	struct k_thread *faulting_thread;
@@ -1896,14 +1896,14 @@ static bool do_page_fault(void *addr, bool pin)
 	faulting_thread = _current;
 
 	status = vmm_impl_page_location_get(addr, &page_in_location);
-	if (status == ARCH_PAGE_LOCATION_BAD) {
+	if (status == VMM_PAGE_LOCATION_BAD) {
 		/* Return false to treat as a fatal error */
 		result = false;
 		goto out;
 	}
 	result = true;
 
-	if (status == ARCH_PAGE_LOCATION_PAGED_IN) {
+	if (status == VMM_PAGE_LOCATION_PAGED_IN) {
 		if (pin) {
 			/* It's a physical memory address */
 			uintptr_t phys = page_in_location;
@@ -1924,7 +1924,7 @@ static bool do_page_fault(void *addr, bool pin)
 		 */
 		goto out;
 	}
-	__ASSERT(status == ARCH_PAGE_LOCATION_PAGED_OUT,
+	__ASSERT(status == VMM_PAGE_LOCATION_PAGED_OUT,
 		 "unexpected status value %d", status);
 
 	paging_stats_faults_inc(faulting_thread, key.key);

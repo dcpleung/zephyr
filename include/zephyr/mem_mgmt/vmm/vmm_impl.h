@@ -186,16 +186,16 @@ void vmm_impl_mem_scratch(uintptr_t phys);
  * information can't become stale while decisions are being made based on it.
  *
  * @param[in]  addr     Virtual data page address that took the page fault
- * @param[out] location In the case of ARCH_PAGE_LOCATION_PAGED_OUT, the backing store
+ * @param[out] location In the case of VMM_PAGE_LOCATION_PAGED_OUT, the backing store
  *                      location value used to retrieve the data page. In the case of
- *                      ARCH_PAGE_LOCATION_PAGED_IN, the physical address the page is
+ *                      VMM_PAGE_LOCATION_PAGED_IN, the physical address the page is
  *                      mapped to.
  *
- * @retval ARCH_PAGE_LOCATION_PAGED_OUT The page was evicted to the backing store
- * @retval ARCH_PAGE_LOCATION_PAGED_IN The page is resident in memory
- * @retval ARCH_PAGE_LOCATION_BAD The page is un-mapped or otherwise has had invalid access
+ * @retval VMM_PAGE_LOCATION_PAGED_OUT The page was evicted to the backing store
+ * @retval VMM_PAGE_LOCATION_PAGED_IN The page is resident in memory
+ * @retval VMM_PAGE_LOCATION_BAD The page is un-mapped or otherwise has had invalid access
  */
-enum arch_page_location vmm_impl_page_location_get(void *addr, uintptr_t *location);
+enum vmm_page_location vmm_impl_page_location_get(void *addr, uintptr_t *location);
 
 /**
  * Retrieve page characteristics of the mapped memory

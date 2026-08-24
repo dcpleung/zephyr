@@ -20,6 +20,7 @@
 #include <zephyr/arch/arm64/lib_helpers.h>
 #include <zephyr/arch/arm64/mm.h>
 #include <zephyr/linker/linker-defs.h>
+#include <zephyr/mem_mgmt/vmm.h>
 #include <zephyr/spinlock.h>
 #include <zephyr/sys/util.h>
 #include <mmu.h>
@@ -1766,30 +1767,30 @@ void arch_mem_page_in(void *addr, uintptr_t phys)
 	invalidate_tlb_page(virt);
 }
 
-enum arch_page_location arch_page_location_get(void *addr, uintptr_t *location)
+enum vmm_page_location arch_page_location_get(void *addr, uintptr_t *location)
 {
 	uintptr_t virt = (uintptr_t)addr;
 	uint64_t *pte = get_pte_location(&kernel_ptables, virt);
 	uint64_t desc;
-	enum arch_page_location status;
+	enum vmm_page_location status;
 
 	if (!pte) {
-		return ARCH_PAGE_LOCATION_BAD;
+		return VMM_PAGE_LOCATION_BAD;
 	}
 	desc = *pte;
 	if (is_free_desc(desc)) {
-		return ARCH_PAGE_LOCATION_BAD;
+		return VMM_PAGE_LOCATION_BAD;
 	}
 
 	switch (desc & PTE_DESC_TYPE_MASK) {
 	case PTE_PAGE_DESC:
-		status = ARCH_PAGE_LOCATION_PAGED_IN;
+		status = VMM_PAGE_LOCATION_PAGED_IN;
 		break;
 	case PTE_INVALID_DESC:
-		status = ARCH_PAGE_LOCATION_PAGED_OUT;
+		status = VMM_PAGE_LOCATION_PAGED_OUT;
 		break;
 	default:
-		return ARCH_PAGE_LOCATION_BAD;
+		return VMM_PAGE_LOCATION_BAD;
 	}
 
 	*location = desc & PTE_PHYSADDR_MASK;

@@ -23,6 +23,8 @@
 #include <zephyr/toolchain.h>
 #include <kernel_arch_interface.h>
 
+#include <zephyr/mem_mgmt/vmm/vmm_pages.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -64,7 +66,7 @@ static ALWAYS_INLINE void vmm_impl_mem_scratch(uintptr_t phys)
 	arch_mem_scratch(phys);
 }
 
-static ALWAYS_INLINE enum arch_page_location
+static ALWAYS_INLINE enum vmm_page_location
 vmm_impl_page_location_get(void *addr, uintptr_t *location)
 {
 	return arch_page_location_get(addr, location);

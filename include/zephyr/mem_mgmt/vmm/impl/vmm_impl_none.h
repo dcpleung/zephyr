@@ -21,6 +21,8 @@
 #include <errno.h>
 #include <zephyr/toolchain.h>
 
+#include <zephyr/mem_mgmt/vmm/vmm_pages.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -81,13 +83,13 @@ static ALWAYS_INLINE void vmm_impl_mem_scratch(uintptr_t phys)
 	return;
 }
 
-static ALWAYS_INLINE enum arch_page_location
+static ALWAYS_INLINE enum vmm_page_location
 vmm_impl_page_location_get(void *addr, uintptr_t *location)
 {
 	ARG_UNUSED(addr);
 	ARG_UNUSED(location);
 
-	return -ENOTSUP;
+	return VMM_PAGE_LOCATION_BAD;
 }
 
 static ALWAYS_INLINE uintptr_t vmm_impl_page_info_get(void *addr, uintptr_t *location,
