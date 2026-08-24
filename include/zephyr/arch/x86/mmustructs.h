@@ -24,12 +24,34 @@
 #define Z_X86_MMU_XD		0
 #endif
 
-/* For these we'll just use the same bits in the PTE */
+/**
+ * PTE Bit indicating the data page, if evicted, will need to be paged out.
+ *
+ * @see VMM_DATA_PAGE_DIRTY
+ */
 #define ARCH_DATA_PAGE_DIRTY		((uintptr_t)BIT(6))
+
+/**
+ * PTE Bit indicating that the data page is loaded into a physical page frame.
+ *
+ * @see VMM_DATA_PAGE_LOADED
+ */
 #define ARCH_DATA_PAGE_LOADED		((uintptr_t)BIT(0))
+
+/**
+ * PTE Bit indicating the data page was accessed since the value was last cleared.
+ *
+ * @see VMM_DATA_PAGE_ACCESSED
+ */
 #define ARCH_DATA_PAGE_ACCESSED		((uintptr_t)BIT(5))
 
-/* Use an PAT bit for this one since it's never set in a mapped PTE */
+/**
+ * Bit indicated page is not mapped.
+ *
+ * Use an PAT bit for this one since it's never set in a mapped PTE.
+ *
+ * @see VMM_DATA_PAGE_NOT_MAPPED
+ */
 #define ARCH_DATA_PAGE_NOT_MAPPED	((uintptr_t)BIT(7))
 
 /*

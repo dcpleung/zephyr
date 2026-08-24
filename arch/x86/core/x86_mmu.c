@@ -2123,6 +2123,7 @@ uintptr_t arch_page_info_get(void *addr, uintptr_t *phys, bool clear_accessed)
 {
 	pentry_t all_pte, mask;
 	uint32_t options;
+	uintptr_t vmm_flags;
 
 	/* What to change, if anything, in the page_map_set() calls */
 	if (clear_accessed) {
@@ -2161,7 +2162,7 @@ uintptr_t arch_page_info_get(void *addr, uintptr_t *phys, bool clear_accessed)
 	 * else in this case.
 	 */
 	if (all_pte == 0) {
-		return ARCH_DATA_PAGE_NOT_MAPPED;
+		return VMM_DATA_PAGE_NOT_MAPPED;
 	}
 
 #if defined(CONFIG_USERSPACE) && !defined(CONFIG_X86_COMMON_PAGE_TABLE)
@@ -2209,8 +2210,29 @@ uintptr_t arch_page_info_get(void *addr, uintptr_t *phys, bool clear_accessed)
 	 *
 	 * The other ARCH_DATA_PAGE_* macros are defined to their corresponding
 	 * bits in the PTE.
+	 *
+	 * The internal ARCH_DATA_PAGE_* needs to be translated to
+	 * VMM_DATA_PAGE_* to be used by other subsys.
 	 */
-	return (uintptr_t)all_pte;
+	vmm_flags = 0U;
+
+	if ((all_pte & ARCH_DATA_PAGE_ACCESSED) == ARCH_DATA_PAGE_ACCESSED) {
+		vmm_flags |= VMM_DATA_PAGE_ACCESSED;
+	}
+
+	if ((all_pte & ARCH_DATA_PAGE_DIRTY) == ARCH_DATA_PAGE_DIRTY) {
+		vmm_flags |= VMM_DATA_PAGE_DIRTY;
+	}
+
+	if ((all_pte & ARCH_DATA_PAGE_LOADED) == ARCH_DATA_PAGE_LOADED) {
+		vmm_flags |= VMM_DATA_PAGE_LOADED;
+	}
+
+	if ((all_pte & ARCH_DATA_PAGE_NOT_MAPPED) == ARCH_DATA_PAGE_NOT_MAPPED) {
+		vmm_flags |= VMM_DATA_PAGE_NOT_MAPPED;
+	}
+
+	return vmm_flags;
 }
 
 enum vmm_page_location arch_page_location_get(void *addr, uintptr_t *location)

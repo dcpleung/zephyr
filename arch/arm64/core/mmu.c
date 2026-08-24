@@ -1805,38 +1805,38 @@ uintptr_t arch_page_info_get(void *addr, uintptr_t *phys, bool clear_accessed)
 	uintptr_t status = 0;
 
 	if (!pte) {
-		return ARCH_DATA_PAGE_NOT_MAPPED;
+		return VMM_DATA_PAGE_NOT_MAPPED;
 	}
 	desc = *pte;
 	if (is_free_desc(desc)) {
-		return ARCH_DATA_PAGE_NOT_MAPPED;
+		return VMM_DATA_PAGE_NOT_MAPPED;
 	}
 
 	switch (desc & PTE_DESC_TYPE_MASK) {
 	case PTE_PAGE_DESC:
-		status |= ARCH_DATA_PAGE_LOADED;
+		status |= VMM_DATA_PAGE_LOADED;
 		break;
 	case PTE_INVALID_DESC:
 		/* page not loaded */
 		break;
 	default:
-		return ARCH_DATA_PAGE_NOT_MAPPED;
+		return VMM_DATA_PAGE_NOT_MAPPED;
 	}
 
 	if (phys) {
 		*phys = desc & PTE_PHYSADDR_MASK;
 	}
 
-	if ((status & ARCH_DATA_PAGE_LOADED) == 0) {
+	if ((status & VMM_DATA_PAGE_LOADED) == 0) {
 		return status;
 	}
 
 	if ((desc & PTE_BLOCK_DESC_AF) != 0) {
-		status |= ARCH_DATA_PAGE_ACCESSED;
+		status |= VMM_DATA_PAGE_ACCESSED;
 	}
 
 	if ((desc & PTE_BLOCK_DESC_AP_RO) == 0) {
-		status |= ARCH_DATA_PAGE_DIRTY;
+		status |= VMM_DATA_PAGE_DIRTY;
 	}
 
 	if (clear_accessed) {
