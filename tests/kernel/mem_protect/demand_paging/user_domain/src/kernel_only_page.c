@@ -12,6 +12,7 @@
 #include <zephyr/ztest.h>
 #include <zephyr/kernel/mm.h>
 #include <zephyr/kernel/mm/demand_paging.h>
+#include <zephyr/mem_mgmt/vmm.h>
 #include <kernel_arch_interface.h>
 
 #include "common.h"
@@ -68,7 +69,7 @@ ZTEST(demand_paging_kernel_only_page, test_el0_touch_kernel_page_is_fatal)
 		 */
 		uintptr_t location;
 
-		zassert_equal(arch_page_location_get(page, &location), ARCH_PAGE_LOCATION_PAGED_OUT,
+		zassert_equal(arch_page_location_get(page, &location), VMM_PAGE_LOCATION_PAGED_OUT,
 			      "kernel-only page was paged in for an EL0 fault");
 	}
 }

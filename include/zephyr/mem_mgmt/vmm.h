@@ -23,6 +23,7 @@
  * @}
  */
 
+#include <zephyr/mem_mgmt/vmm/vmm_pages.h>
 #include <zephyr/mem_mgmt/vmm/vmm_impl.h>
 
 #endif /* ZEPHYR_INCLUDE_MEM_MGMT_VMM_H_ */

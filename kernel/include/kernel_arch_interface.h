@@ -442,20 +442,6 @@ void arch_mem_page_in(void *addr, uintptr_t phys);
 void arch_mem_scratch(uintptr_t phys);
 
 /**
- * Status of a particular page location.
- */
-enum arch_page_location {
-	/** The page has been evicted to the backing store. */
-	ARCH_PAGE_LOCATION_PAGED_OUT,
-
-	/** The page is resident in memory. */
-	ARCH_PAGE_LOCATION_PAGED_IN,
-
-	/** The page is not mapped. */
-	ARCH_PAGE_LOCATION_BAD
-};
-
-/**
  * Fetch location information about a page at a particular address
  *
  * The function only needs to query the current set of page tables as
@@ -474,15 +460,15 @@ enum arch_page_location {
  * in that.
  *
  * @param addr Virtual data page address that took the page fault
- * @param [out] location In the case of ARCH_PAGE_LOCATION_PAGED_OUT, the backing
+ * @param [out] location In the case of VMM_PAGE_LOCATION_PAGED_OUT, the backing
  *        store location value used to retrieve the data page. In the case of
- *        ARCH_PAGE_LOCATION_PAGED_IN, the physical address the page is mapped to.
- * @retval ARCH_PAGE_LOCATION_PAGED_OUT The page was evicted to the backing store.
- * @retval ARCH_PAGE_LOCATION_PAGED_IN The data page is resident in memory.
- * @retval ARCH_PAGE_LOCATION_BAD The page is un-mapped or otherwise has had
+ *        VMM_PAGE_LOCATION_PAGED_IN, the physical address the page is mapped to.
+ * @retval VMM_PAGE_LOCATION_PAGED_OUT The page was evicted to the backing store.
+ * @retval VMM_PAGE_LOCATION_PAGED_IN The data page is resident in memory.
+ * @retval VMM_PAGE_LOCATION_BAD The page is un-mapped or otherwise has had
  *         invalid access
  */
-enum arch_page_location arch_page_location_get(void *addr, uintptr_t *location);
+enum vmm_page_location arch_page_location_get(void *addr, uintptr_t *location);
 
 /**
  * @def ARCH_DATA_PAGE_ACCESSED

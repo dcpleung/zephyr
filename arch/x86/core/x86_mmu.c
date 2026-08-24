@@ -21,6 +21,7 @@
 #include <mmu.h>
 #include <zephyr/drivers/interrupt_controller/loapic.h>
 #include <zephyr/arch/x86/memmap.h>
+#include <zephyr/mem_mgmt/vmm.h>
 
 LOG_MODULE_DECLARE(os, CONFIG_KERNEL_LOG_LEVEL);
 
@@ -2212,7 +2213,7 @@ uintptr_t arch_page_info_get(void *addr, uintptr_t *phys, bool clear_accessed)
 	return (uintptr_t)all_pte;
 }
 
-enum arch_page_location arch_page_location_get(void *addr, uintptr_t *location)
+enum vmm_page_location arch_page_location_get(void *addr, uintptr_t *location)
 {
 	pentry_t pte;
 	int level;
@@ -2224,14 +2225,14 @@ enum arch_page_location arch_page_location_get(void *addr, uintptr_t *location)
 
 	if (pte == 0) {
 		/* Not mapped */
-		return ARCH_PAGE_LOCATION_BAD;
+		return VMM_PAGE_LOCATION_BAD;
 	}
 
 	__ASSERT(level == PTE_LEVEL, "bigpage found at %p", addr);
 	*location = (uintptr_t)get_entry_phys(pte, PTE_LEVEL);
 
 	if ((pte & MMU_P) != 0) {
-		return ARCH_PAGE_LOCATION_PAGED_IN;
+		return VMM_PAGE_LOCATION_PAGED_IN;
 	}
 
 #ifdef CONFIG_EVICTION_LRU
@@ -2241,11 +2242,11 @@ enum arch_page_location arch_page_location_get(void *addr, uintptr_t *location)
 	 * paged-out entries.
 	 */
 	if ((pte & MMU_LRU_TRACK) != 0) {
-		return ARCH_PAGE_LOCATION_PAGED_IN;
+		return VMM_PAGE_LOCATION_PAGED_IN;
 	}
 #endif
 
-	return ARCH_PAGE_LOCATION_PAGED_OUT;
+	return VMM_PAGE_LOCATION_PAGED_OUT;
 }
 
 #ifdef CONFIG_X86_KPTI
