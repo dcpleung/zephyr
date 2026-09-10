@@ -1,0 +1,14 @@
+common:
+  ignore_faults: true
+  tags:
+    - kernel
+    - mmu
+tests:
+  kernel.memory_protection.mem_map_recovery:
+    arch_allow:
+      - arm
+      - arm64
+      - x86
+    filter: CONFIG_MMU
+    integration_platforms:
+      - qemu_x86
