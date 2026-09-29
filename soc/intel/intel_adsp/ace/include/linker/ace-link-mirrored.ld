@@ -157,6 +157,7 @@ SECTIONS {
      */
 
     *libarch__xtensa__core.a:xtensa_asm2_util.S.obj(.literal)
+    *libarch__xtensa__core.a:xtensa_asm2_util.S.obj(.iram0.text)
     *libarch__xtensa__core.a:xtensa_asm2_util.S.obj(.iram.text)
     *libarch__xtensa__core.a:xtensa_asm2_util.S.obj(.text)
 
@@ -176,6 +177,14 @@ SECTIONS {
 #ifdef CONFIG_XTENSA_SYSCALL_USE_HELPER
     *libarch__xtensa__core.a:syscall_helper.c.obj(.text.xtensa_syscall_helper*)
 #endif /* CONFIG_XTENSA_SYSCALL_USE_HELPER */
+
+#ifdef CONFIG_XTENSA_ENABLE_BACKTRACE
+    *libarch__xtensa__core.a:debug_helpers_asm.S.obj(.iram1.literal)
+    *libarch__xtensa__core.a:debug_helpers_asm.S.obj(.iram1)
+#endif
+
+    *libarch__xtensa__core.a:vector_handlers.c.obj(.literal.xtensa_excint1_c)
+    *libarch__xtensa__core.a:vector_handlers.c.obj(.text.xtensa_excint1_c)
 
   } > vectors
 #endif /* CONFIG_XTENSA_MMU */
