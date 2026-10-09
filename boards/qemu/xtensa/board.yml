@@ -6,6 +6,8 @@ board:
   - name: dc233c
     variants:
     - name: call0
+      variants:
+      - name: mmu
     - name: mmu
   - name: sample_controller32
     variants:
