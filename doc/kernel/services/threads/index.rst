@@ -483,6 +483,27 @@ The kernel provides several interfaces for inspecting threads at run time.
     is a lower-latency variant that releases the lock around each callback at the
     cost of a less strictly consistent view.
 
+**Thread status notifications**
+    When :kconfig:option:`CONFIG_THREAD_MONITOR_CALLBACK` is enabled, a
+    :c:struct:`k_thread_monitor_cb` initialized with
+    :c:func:`k_thread_monitor_cb_init` and registered with
+    :c:func:`k_thread_monitor_cb_register` is bound to one thread and has its
+    handler invoked for each event of that thread whose bit is set in its event
+    mask. The kernel stores the event and event-specific information in the
+    callback before invoking the handler, so processing can be deferred and the
+    event read back later, as long as the thread cannot end again in the
+    meantime; otherwise the handler copies the event into storage it
+    synchronizes, such as a message queue.
+    :c:macro:`K_THREAD_MONITOR_EVENT_FATAL_ERROR` is raised
+    right before a thread is aborted because of a fatal error, which happens
+    only when :c:func:`k_sys_fatal_error_handler` returns.
+    :c:macro:`K_THREAD_MONITOR_EVENT_ESSENTIAL_EXIT` is raised right before an
+    essential thread ends, which is followed by a kernel panic. The handler runs
+    with interrupts locked, possibly in exception context. It must not block, abort or suspend any
+    thread, or wait for another CPU; such actions are deferred to a thread, for
+    example with :c:func:`k_work_submit`. The :zephyr:code-sample:`thread_monitor`
+    sample uses these callbacks to restart faulting and essential threads.
+
 **Querying stack usage**
     When :kconfig:option:`CONFIG_INIT_STACKS` and
     :kconfig:option:`CONFIG_THREAD_STACK_INFO` are enabled,

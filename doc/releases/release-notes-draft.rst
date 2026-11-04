@@ -138,6 +138,13 @@ Other notable changes
   * :kconfig:option:`CONFIG_BT_PRIVACY` can now be enabled in Broadcaster- and Observer-only builds,
     without :kconfig:option:`CONFIG_BT_SMP`.
 
+* Kernel
+
+  * With :kconfig:option:`CONFIG_THREAD_MONITOR_CALLBACK`, code can register callbacks bound to a
+    thread and be notified when that thread is aborted because of a fatal error or, for an
+    essential thread, when it ends. A supervisor can use them to restart failing threads, as the
+    :zephyr:code-sample:`thread_monitor` sample shows.
+
 ..
   Any more descriptive subsystem or driver changes. Do you really want to write
   a paragraph or is it enough to link to the documentation of the change?
