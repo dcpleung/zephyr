@@ -1,0 +1,9 @@
+common:
+  ignore_faults: true
+  tags:
+    - kernel
+    - threads
+tests:
+  kernel.threads.thread_monitor_cb:
+    integration_platforms:
+      - native_sim
