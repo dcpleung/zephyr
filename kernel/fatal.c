@@ -198,6 +198,20 @@ void z_fatal_error(unsigned int reason, const struct arch_esf *esf)
 #endif /*CONFIG_ARCH_HAS_NESTED_EXCEPTION_DETECTION */
 	}
 
+	/*
+	 * Not raised without a current thread (no multithreading, or before
+	 * the first thread exists), for essential threads, whose abort panics
+	 * and re-enters here, or for threads that are already dead.
+	 */
+	if (IS_ENABLED(CONFIG_THREAD_MONITOR_CALLBACK) && (thread != NULL) &&
+	    !z_is_thread_essential(thread) && !z_is_thread_dead(thread)) {
+		const union k_thread_monitor_event_info info = {
+			.fatal_error.reason = reason,
+		};
+
+		z_thread_monitor_notify(thread, K_THREAD_MONITOR_EVENT_FATAL_ERROR, &info);
+	}
+
 	arch_irq_unlock(key);
 
 	if (IS_ENABLED(CONFIG_MULTITHREADING)) {

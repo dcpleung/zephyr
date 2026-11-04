@@ -304,6 +304,172 @@ void k_thread_foreach_unlocked_filter_by_cpu(unsigned int cpu,
 }
 #endif
 
+/**
+ * @brief Thread is about to be aborted due to a fatal error.
+ *
+ * The @c fatal_error member of @ref k_thread_monitor_event_info is valid.
+ */
+#define K_THREAD_MONITOR_EVENT_FATAL_ERROR BIT(0)
+
+/**
+ * @brief Event-specific information stored in a thread monitor callback.
+ *
+ * Only the member matching the reported event is valid.
+ */
+union k_thread_monitor_event_info {
+	/** Information for @ref K_THREAD_MONITOR_EVENT_FATAL_ERROR. */
+	struct {
+		/** Fatal error reason, see @ref k_fatal_error_reason. */
+		unsigned int reason;
+	} fatal_error;
+};
+
+struct k_thread_monitor_cb;
+
+/**
+ * @brief Thread monitor callback handler.
+ *
+ * The reported event is stored in @p cb (@c event and @c info) before the
+ * handler is invoked.
+ *
+ * @param cb Callback structure that was registered.
+ */
+typedef void (*k_thread_monitor_cb_handler_t)(struct k_thread_monitor_cb *cb);
+
+/**
+ * @brief Thread monitor callback.
+ *
+ * A callback is bound to one thread and only reports that thread's events.
+ * Initialize with k_thread_monitor_cb_init() and register with
+ * k_thread_monitor_cb_register(). To retrieve context in the handler, pass
+ * it as @c priv_data to k_thread_monitor_cb_init(), or embed the callback
+ * in a larger structure and use CONTAINER_OF().
+ *
+ * The kernel stores each reported event in @c event and @c info before
+ * invoking the handler, so the handler can defer processing, for example
+ * with k_work_submit(), and read them later. They are overwritten by the
+ * next event of the thread, under a lock that readers outside the handler
+ * cannot take, so a deferred read is only consistent if the thread cannot
+ * end again before it completes, for example because it is only restarted
+ * after the read. Otherwise, copy the fields in the handler into storage
+ * the user synchronizes, for example with k_msgq_put() and @ref K_NO_WAIT.
+ */
+struct k_thread_monitor_cb {
+	/** @cond INTERNAL_HIDDEN */
+	sys_snode_t node;
+	k_thread_monitor_cb_handler_t handler;
+	uint32_t event_mask;
+	/** @endcond */
+
+	/** Thread this callback is bound to. Set by k_thread_monitor_cb_init(). */
+	struct k_thread *thread;
+
+	/** The single K_THREAD_MONITOR_EVENT_* bit last reported. */
+	uint32_t event;
+
+	/** Event-specific information for @c event. */
+	union k_thread_monitor_event_info info;
+
+	/**
+	 * Arbitrary data for the callback user. Set by
+	 * k_thread_monitor_cb_init() and otherwise not used by the kernel.
+	 */
+	void *priv_data;
+};
+
+/**
+ * @brief Initialize a thread monitor callback.
+ *
+ * Must only be called on a callback that is not registered.
+ *
+ * @param cb Callback structure to initialize.
+ * @param handler Function invoked when one of the events in @p event_mask occurs.
+ * @param event_mask Bitwise OR of K_THREAD_MONITOR_EVENT_* values.
+ * @param thread Thread whose events are reported to this callback.
+ * @param priv_data Arbitrary data for the callback user, stored in
+ *                  @c priv_data; may be NULL.
+ */
+static inline void k_thread_monitor_cb_init(struct k_thread_monitor_cb *cb,
+					    k_thread_monitor_cb_handler_t handler,
+					    uint32_t event_mask, struct k_thread *thread,
+					    void *priv_data)
+{
+	__ASSERT(cb != NULL, "cb can not be NULL");
+	__ASSERT(handler != NULL, "handler can not be NULL");
+	__ASSERT(thread != NULL, "thread can not be NULL");
+
+	cb->handler = handler;
+	cb->event_mask = event_mask;
+	cb->thread = thread;
+	cb->event = 0U;
+	cb->info = (union k_thread_monitor_event_info){0};
+	cb->priv_data = priv_data;
+}
+
+/**
+ * @brief Register a thread monitor callback.
+ *
+ * The handler is invoked for every event whose bit is set in the event mask
+ * given to k_thread_monitor_cb_init().
+ *
+ * For @ref K_THREAD_MONITOR_EVENT_FATAL_ERROR, the handler runs from
+ * z_fatal_error() after k_sys_fatal_error_handler() has returned and right
+ * before the thread is aborted. The thread is the one that was running
+ * when the fault occurred; for a fault in an ISR, it is the interrupted
+ * thread. The event is not raised for essential threads, whose abort
+ * causes a kernel panic. The handler runs with interrupts locked on the
+ * faulting CPU, possibly in exception context, and must not block, abort
+ * or suspend any thread, wait for another CPU, or call
+ * k_thread_monitor_cb_register() or k_thread_monitor_cb_unregister(). On
+ * SMP another CPU may be waiting for the callback list lock with
+ * interrupts locked and cannot respond. Defer such actions to a thread,
+ * for example with k_work_submit(). The default
+ * k_sys_fatal_error_handler() halts or resets the system, in which case
+ * the handler is never invoked.
+ *
+ * A fault inside a handler is unrecoverable: the nested fatal error is
+ * reported and passed to k_sys_fatal_error_handler() as usual, so a reset
+ * policy still applies. If that handler returns, k_fatal_halt() is called
+ * in non-test builds. On SMP this may halt only the faulting CPU, which
+ * keeps the callback list locked, so other CPUs then block on their next
+ * notification, registration or unregistration.
+ *
+ * Handlers may call k_thread_foreach(). In turn, this function must not be
+ * called from a k_thread_foreach() or k_thread_foreach_filter_by_cpu()
+ * callback, as that inverts the lock order and can deadlock on SMP. If the
+ * faulting context holds the thread list lock, for example a fault inside
+ * a k_thread_foreach() callback, either the reported thread's own or one
+ * started by a handler, then a handler or k_sys_fatal_error_handler()
+ * that walks the thread list deadlocks.
+ *
+ * @note @kconfig{CONFIG_THREAD_MONITOR_CALLBACK} must be set for this
+ * function to be available.
+ *
+ * @param cb Initialized callback structure. Must remain valid until
+ *           unregistered.
+ *
+ * @retval 0 Callback registered.
+ * @retval -EALREADY Callback is already registered.
+ */
+int k_thread_monitor_cb_register(struct k_thread_monitor_cb *cb);
+
+/**
+ * @brief Unregister a thread monitor callback.
+ *
+ * Must not be called from a thread monitor handler, or from a
+ * k_thread_foreach() or k_thread_foreach_filter_by_cpu() callback, see
+ * k_thread_monitor_cb_register().
+ *
+ * @note @kconfig{CONFIG_THREAD_MONITOR_CALLBACK} must be set for this
+ * function to be available.
+ *
+ * @param cb Callback structure previously registered.
+ *
+ * @retval 0 Callback unregistered.
+ * @retval -EINVAL Callback is not registered.
+ */
+int k_thread_monitor_cb_unregister(struct k_thread_monitor_cb *cb);
+
 /** @} */
 
 /**

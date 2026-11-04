@@ -418,6 +418,14 @@ config THREAD_MONITOR
 	  (excluding those that have not yet started or have already
 	  terminated).
 
+config THREAD_MONITOR_CALLBACK
+	bool "Thread monitor callbacks"
+	depends on THREAD_MONITOR
+	help
+	  This option allows registering callbacks that are invoked on
+	  thread status changes. Currently the only reported event is a
+	  thread being terminated due to a fatal error.
+
 config THREAD_NAME
 	bool "Thread name"
 	help

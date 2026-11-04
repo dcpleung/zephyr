@@ -46,6 +46,43 @@ void z_thread_monitor_exit(struct k_thread *thread);
 	} while (false)
 #endif /* CONFIG_THREAD_MONITOR */
 
+/**
+ * @brief Notify registered thread monitor callbacks of an event.
+ *
+ * For each registered callback whose event mask contains @p event, store
+ * @p thread, @p event and the event-specific information in the callback
+ * and invoke its handler. Handlers run with the callback list lock held
+ * and interrupts locked on the current CPU.
+ *
+ * If the current CPU already holds the callback list lock, a fault inside
+ * a handler or inside k_thread_monitor_cb_register() or
+ * k_thread_monitor_cb_unregister() has re-entered the fatal error path.
+ * Whether the interrupted code resumes is architecture specific, so the
+ * lock can neither be taken nor released safely and k_fatal_halt() is
+ * called instead.
+ *
+ * Must not be called with the scheduler lock held, as handlers may defer
+ * work with k_work_submit(). Without
+ * @kconfig{CONFIG_THREAD_MONITOR_CALLBACK} this is an empty inline
+ * function.
+ *
+ * @param thread Thread the event refers to.
+ * @param event Single K_THREAD_MONITOR_EVENT_* bit being reported.
+ * @param info Event-specific information for @p event.
+ */
+#if defined(CONFIG_THREAD_MONITOR_CALLBACK)
+void z_thread_monitor_notify(struct k_thread *thread, uint32_t event,
+			     const union k_thread_monitor_event_info *info);
+#else
+static inline void z_thread_monitor_notify(struct k_thread *thread, uint32_t event,
+					   const union k_thread_monitor_event_info *info)
+{
+	ARG_UNUSED(thread);
+	ARG_UNUSED(event);
+	ARG_UNUSED(info);
+}
+#endif /* CONFIG_THREAD_MONITOR_CALLBACK */
+
 void z_thread_abort(struct k_thread *thread);
 
 static inline void thread_schedule_new(struct k_thread *thread, k_timeout_t delay)
