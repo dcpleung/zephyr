@@ -1,0 +1,30 @@
+sample:
+  description: Restart faulting and essential threads using thread monitor callbacks
+  name: thread monitor
+common:
+  tags:
+    - kernel
+    - threads
+  integration_platforms:
+    - native_sim
+    - qemu_cortex_m3
+    - qemu_x86
+  # Restarting essential threads does not work on these architectures:
+  # SPARC cannot resume from the panic raised on an exiting essential
+  # thread, and on ARM64 a later essential thread exit breaks scheduling.
+  arch_exclude:
+    - arm64
+    - sparc
+  ignore_faults: true
+  harness: console
+  harness_config:
+    type: multi_line
+    ordered: false
+    regex:
+      - "faulty: fatal error 3, restart 3/3"
+      - "essential: exited, restart 3/3"
+      - "faulty: fatal error 3, giving up"
+      - "essential: exited, giving up"
+      - "All supervised threads stopped after 3 restarts each"
+tests:
+  sample.kernel.thread_monitor: {}
