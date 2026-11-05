@@ -68,7 +68,8 @@ void z_thread_monitor_exit(struct k_thread *thread);
  *
  * @param thread Thread the event refers to.
  * @param event Single K_THREAD_MONITOR_EVENT_* bit being reported.
- * @param info Event-specific information for @p event.
+ * @param info Event-specific information for @p event, or NULL if the
+ *             event carries none, in which case a zeroed union is stored.
  */
 #if defined(CONFIG_THREAD_MONITOR_CALLBACK)
 void z_thread_monitor_notify(struct k_thread *thread, uint32_t event,

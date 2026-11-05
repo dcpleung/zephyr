@@ -205,7 +205,11 @@ void z_thread_monitor_notify(struct k_thread *thread, uint32_t event,
 		}
 
 		cb->event = event;
-		cb->info = *info;
+		if (info != NULL) {
+			cb->info = *info;
+		} else {
+			cb->info = (union k_thread_monitor_event_info){0};
+		}
 
 		cb->handler(cb);
 	}

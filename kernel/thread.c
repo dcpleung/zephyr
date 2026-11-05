@@ -1757,7 +1757,14 @@ static inline void z_vrfy_k_wakeup(k_tid_t thread)
 void z_thread_abort(struct k_thread *thread)
 {
 	bool essential = z_is_thread_essential(thread);
-	k_spinlock_key_t key = z_sched_spinlock_lock();
+	k_spinlock_key_t key;
+
+	/* Before taking the scheduler lock, which handlers may need for k_work_submit() */
+	if (IS_ENABLED(CONFIG_THREAD_MONITOR_CALLBACK) && essential && !z_is_thread_dead(thread)) {
+		z_thread_monitor_notify(thread, K_THREAD_MONITOR_EVENT_ESSENTIAL_EXIT, NULL);
+	}
+
+	key = z_sched_spinlock_lock();
 
 	if (z_is_thread_dead(thread)) {
 		z_sched_spinlock_unlock(key);

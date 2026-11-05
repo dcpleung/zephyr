@@ -200,8 +200,9 @@ void z_fatal_error(unsigned int reason, const struct arch_esf *esf)
 
 	/*
 	 * Not raised without a current thread (no multithreading, or before
-	 * the first thread exists), for essential threads, whose abort panics
-	 * and re-enters here, or for threads that are already dead.
+	 * the first thread exists), for essential threads, which are reported
+	 * with K_THREAD_MONITOR_EVENT_ESSENTIAL_EXIT when aborted, or for
+	 * threads that are already dead.
 	 */
 	if (IS_ENABLED(CONFIG_THREAD_MONITOR_CALLBACK) && (thread != NULL) &&
 	    !z_is_thread_essential(thread) && !z_is_thread_dead(thread)) {

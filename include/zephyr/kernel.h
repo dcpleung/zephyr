@@ -312,6 +312,15 @@ void k_thread_foreach_unlocked_filter_by_cpu(unsigned int cpu,
 #define K_THREAD_MONITOR_EVENT_FATAL_ERROR BIT(0)
 
 /**
+ * @brief Essential thread is about to end, which causes a kernel panic.
+ *
+ * Raised when an essential thread is aborted, including when it returns
+ * from its entry function or is aborted after a fatal error. No member of
+ * @ref k_thread_monitor_event_info is valid.
+ */
+#define K_THREAD_MONITOR_EVENT_ESSENTIAL_EXIT BIT(1)
+
+/**
  * @brief Event-specific information stored in a thread monitor callback.
  *
  * Only the member matching the reported event is valid.
@@ -410,22 +419,26 @@ static inline void k_thread_monitor_cb_init(struct k_thread_monitor_cb *cb,
  * @brief Register a thread monitor callback.
  *
  * The handler is invoked for every event whose bit is set in the event mask
- * given to k_thread_monitor_cb_init().
+ * given to k_thread_monitor_cb_init(). It runs with interrupts locked on the
+ * current CPU, possibly in exception context, and must not block, abort or
+ * suspend any thread, wait for another CPU, or call
+ * k_thread_monitor_cb_register() or k_thread_monitor_cb_unregister(). On
+ * SMP another CPU may be waiting for the callback list lock with interrupts
+ * locked and cannot respond. Defer such actions to a thread, for example
+ * with k_work_submit().
  *
  * For @ref K_THREAD_MONITOR_EVENT_FATAL_ERROR, the handler runs from
  * z_fatal_error() after k_sys_fatal_error_handler() has returned and right
  * before the thread is aborted. The thread is the one that was running
  * when the fault occurred; for a fault in an ISR, it is the interrupted
- * thread. The event is not raised for essential threads, whose abort
- * causes a kernel panic. The handler runs with interrupts locked on the
- * faulting CPU, possibly in exception context, and must not block, abort
- * or suspend any thread, wait for another CPU, or call
- * k_thread_monitor_cb_register() or k_thread_monitor_cb_unregister(). On
- * SMP another CPU may be waiting for the callback list lock with
- * interrupts locked and cannot respond. Defer such actions to a thread,
- * for example with k_work_submit(). The default
- * k_sys_fatal_error_handler() halts or resets the system, in which case
- * the handler is never invoked.
+ * thread. The event is not raised for essential threads, which are
+ * reported with @ref K_THREAD_MONITOR_EVENT_ESSENTIAL_EXIT when aborted.
+ * The default k_sys_fatal_error_handler() halts or resets the system, in
+ * which case the handler is never invoked for this event.
+ *
+ * For @ref K_THREAD_MONITOR_EVENT_ESSENTIAL_EXIT, the handler runs in the
+ * context aborting the essential thread, right before the thread is
+ * halted. A kernel panic follows.
  *
  * A fault inside a handler is unrecoverable: the nested fatal error is
  * reported and passed to k_sys_fatal_error_handler() as usual, so a reset

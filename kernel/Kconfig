@@ -423,8 +423,8 @@ config THREAD_MONITOR_CALLBACK
 	depends on THREAD_MONITOR
 	help
 	  This option allows registering callbacks that are invoked on
-	  thread status changes. Currently the only reported event is a
-	  thread being terminated due to a fatal error.
+	  thread status changes: a thread being terminated due to a fatal
+	  error, and an essential thread ending.
 
 config THREAD_NAME
 	bool "Thread name"
