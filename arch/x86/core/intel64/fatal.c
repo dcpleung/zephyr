@@ -47,5 +47,6 @@ void arch_syscall_oops(void *ssf_ptr)
 	EXCEPTION_DUMP("Bad system call from RIP 0x%lx", ssf->rip);
 
 	z_x86_fatal_error(K_ERR_KERNEL_OOPS, NULL);
+	CODE_UNREACHABLE;
 }
 #endif /* CONFIG_USERSPACE */
