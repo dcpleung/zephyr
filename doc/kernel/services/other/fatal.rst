@@ -122,6 +122,8 @@ overriding the implementation of :c:func:`k_sys_fatal_error_handler()`.
 If the implementation returns, the faulting thread will be aborted and
 the system will otherwise continue to function. See the documentation for
 this function for additional details and constraints.
+A thread armed with :c:func:`k_thread_restart_limit_set` is then created again instead of
+staying aborted, see :ref:`thread_restart`.
 
 API Reference
 *************

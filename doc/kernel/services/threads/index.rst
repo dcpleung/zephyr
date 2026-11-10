@@ -129,7 +129,105 @@ owned by an aborted thread.
 
 .. note::
     The kernel does not currently make any claims regarding an application's
-    ability to respawn a thread that aborts.
+    ability to respawn a thread that aborts. A supervisor thread can be
+    restarted by the kernel, see :ref:`thread_restart`.
+
+.. _thread_restart:
+
+Thread Restart
+==============
+
+With :kconfig:option:`CONFIG_THREAD_RESTART`, a thread that a fatal error would abort, or an
+essential thread that returns or aborts itself, can instead be created again from its entry point on
+the same thread object. The thread is restarted up to a limit set for it, after which it is
+aborted, or the kernel panics for an essential thread, as without the feature. The feature is
+disabled by default and no thread is restarted until it is armed. It cannot be enabled together
+with :kconfig:option:`CONFIG_CMSIS_RTOS_V1`, whose thread abort hook releases the resources of a
+thread that is only halted for a restart.
+
+.. warning::
+
+   The thread abort hook enabled by :kconfig:option:`CONFIG_THREAD_ABORT_HOOK` runs each time a
+   thread is halted for a restart, as for any other abort, and the thread's custom data is reset
+   when it is created again. A hook that releases resources of the thread, or that keeps state in
+   its custom data, is not aware that the thread lives on. Developers who enable
+   :kconfig:option:`CONFIG_THREAD_RESTART` and :kconfig:option:`CONFIG_THREAD_ABORT_HOOK` together
+   must make sure the two do not conflict.
+
+Arming a thread
+---------------
+
+:c:func:`k_thread_restart_limit_set` arms a thread with the maximum number of restarts. It resets
+the restart count, and a limit of 0 disarms the thread. :c:func:`k_thread_restart_limit_get` and
+:c:func:`k_thread_restart_count_get` return the limit and the number of restarts since the limit
+was last set; the count includes a restart that is still pending.
+
+Arming a thread fails with ``-EBUSY`` while a restart of it is pending, with ``-EINVAL`` if it is
+dead, an idle thread or the main thread, and with ``-ENOTSUP`` for the threads listed below.
+
+The following are never restarted:
+
+* User mode threads.
+* Work queue threads, including the system work queue thread.
+* The idle and main threads.
+* Any thread after :c:func:`k_panic`, which is a kernel panic and not restartable.
+* Threads whose thread or stack object is a kernel object allocated at run time with
+  :kconfig:option:`CONFIG_USERSPACE`, for example from :c:func:`k_object_alloc`.
+
+Restarts run from the system work queue
+---------------------------------------
+
+The restart is performed by a work item of the system work queue, once nothing runs on the stack of
+the dead thread any more. Restarts therefore depend on that work queue:
+
+* A restart is delayed by the work items queued ahead of it, and never happens if a work item
+  blocks forever.
+* If the system work queue refuses work, for example because it was stopped, pending restarts are
+  cancelled and the threads stay aborted.
+* With :kconfig:option:`CONFIG_USERSPACE`, the restarted thread joins the memory domain of the
+  system work queue thread. Memory domain membership and permissions granted to the thread before
+  the restart are lost; a thread created with ``K_INHERIT_PERMS`` inherits the permissions of the
+  system work queue thread.
+
+The default :c:func:`k_sys_fatal_error_handler` halts the system, so restarting a thread after a
+fault requires an application handler that returns, see :ref:`fatal`.
+
+What a restarted thread keeps
+-----------------------------
+
+The thread is created again with the stack, entry point, arguments, priority and options it was
+created with, and keeps its name, CPU mask and resource pool. Otherwise it is set up as a newly
+created thread, except that:
+
+* Kernel objects the thread held, such as mutexes, are not released.
+* A :c:func:`k_thread_suspend` of the thread while its restart is pending has no effect.
+
+State of a thread waiting to be restarted
+-----------------------------------------
+
+* The thread is dead, but :c:func:`k_thread_join` waits until the thread exits for the last time:
+  when it is not restarted again, or its restart is cancelled.
+* :c:func:`k_thread_abort` and :c:func:`k_thread_create` on the thread cancel the restart, and
+  return once the kernel is done with the thread. If the system work queue is setting the thread up
+  again, they wait until it is done. An ISR can only wait for that while the system work queue runs
+  on another CPU, and cannot wait for the thread it interrupted and halted itself: then
+  :c:func:`k_thread_abort` returns once the thread cannot run any more, and the thread object and
+  stack must not be reused before :c:func:`k_thread_join` returns for the thread.
+* :c:func:`k_thread_stack_free` of its stack returns ``-EBUSY``; a user mode caller is oopsed
+  instead, as for any stack in use.
+* :c:func:`k_thread_restart_limit_set` returns ``-EBUSY``.
+
+Essential threads
+-----------------
+
+An armed essential thread (``K_ESSENTIAL``) is restarted instead of causing a kernel panic when it
+returns from its entry point, aborts itself or is terminated by a fatal error. Aborting it from
+another thread or an ISR with :c:func:`k_thread_abort` is an error and still causes a kernel panic.
+To stop such a thread for good, disarm it with :c:func:`k_thread_restart_limit_set` and a limit of
+0 before it returns.
+
+:c:func:`k_thread_abort` of a thread that a fatal error is about to restart, from another thread or
+an ISR, cancels the restart: the abort wins.
 
 Thread Suspension
 ==================

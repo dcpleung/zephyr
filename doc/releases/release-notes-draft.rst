@@ -189,6 +189,13 @@ Other notable changes
   * :kconfig:option:`CONFIG_BT_PRIVACY` can now be enabled in Broadcaster- and Observer-only builds,
     without :kconfig:option:`CONFIG_BT_SMP`.
 
+* Kernel
+
+  * Supervisor threads can be restarted after a fatal error. A thread armed with a restart limit
+    is created again from its entry point on the same thread object instead of being aborted, and
+    an armed essential thread is restarted instead of causing a kernel panic. The feature is
+    disabled by default, see :ref:`thread_restart`.
+
 ..
   Any more descriptive subsystem or driver changes. Do you really want to write
   a paragraph or is it enough to link to the documentation of the change?
