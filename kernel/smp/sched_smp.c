@@ -238,6 +238,13 @@ static void thread_halt_spin(struct k_thread *thread, k_spinlock_key_t key)
 void z_smp_halt_remote(struct k_thread *thread, struct _cpu *cpu,
 		       k_spinlock_key_t key, bool terminate)
 {
+	/* The abort of a thread with a restart pending is finished by the
+	 * restart code, which also waits for the timeout handler below and
+	 * then wakes the joiners, which may free the thread: leave the wait
+	 * to it, see kernel/thread_restart.c.
+	 */
+	bool restarting = terminate && z_thread_restart_is_pending_locked(thread);
+
 	thread->base.thread_state |= (terminate ? _THREAD_ABORTING
 				      : _THREAD_SUSPENDING);
 #ifdef CONFIG_SCHED_IPI_SUPPORTED
@@ -273,7 +280,7 @@ void z_smp_halt_remote(struct k_thread *thread, struct _cpu *cpu,
 	 * suspended threads). After this loop returns, no further
 	 * dereference of thread->base will occur.
 	 */
-	while (z_try_abort_thread_timeout(thread) == -EAGAIN) {
+	while (!restarting && (z_try_abort_thread_timeout(thread) == -EAGAIN)) {
 		z_wait_thread_timeout_inflight(thread);
 	}
 }

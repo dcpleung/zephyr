@@ -865,7 +865,8 @@ static char *setup_thread_common(struct k_thread *new_thread,
 				 k_thread_stack_t *stack, size_t stack_size,
 				 k_thread_entry_t entry,
 				 void *p1, void *p2, void *p3,
-				 int prio, uint32_t options, const char *name)
+				 int prio, uint32_t options, const char *name,
+				 uint8_t initial_state)
 {
 	char *stack_ptr;
 
@@ -878,7 +879,7 @@ static char *setup_thread_common(struct k_thread *new_thread,
 	z_thread_user_init(new_thread, stack, options);
 
 	/* Initialize various struct k_thread members */
-	z_init_thread_base(&new_thread->base, prio, _THREAD_SLEEPING, options);
+	z_init_thread_base(&new_thread->base, prio, initial_state, options);
 	stack_ptr = setup_thread_stack(new_thread, stack, stack_size);
 
 #if Z_MUTEX_PI_ENABLED
@@ -948,11 +949,12 @@ static inline void exit_thread_obj_core(struct k_thread *thread)
 
 /*
  * Leave the memory domain, drop every kernel object permission the thread
- * held and retire the thread and stack kernel objects.
+ * held and retire the thread and stack kernel objects, unless the thread
+ * is about to be restarted.
  */
-static inline void exit_thread_userspace(struct k_thread *thread)
+static inline void exit_thread_userspace(struct k_thread *thread, bool keep_objects)
 {
-	z_thread_user_exit(thread);
+	z_thread_user_exit(thread, keep_objects);
 }
 
 /* Perform, or defer, the cleanup that needs the thread to have stopped. */
@@ -972,12 +974,12 @@ static inline void exit_thread_abort_cleanup(struct k_thread *thread)
  * with its spinlock held, once the thread is known not to run anywhere and
  * _current is still the aborting thread if it aborted itself.
  */
-void z_thread_release(struct k_thread *thread)
+void z_thread_release(struct k_thread *thread, bool keep_user_objects)
 {
 	z_thread_monitor_exit(thread);
 	exit_thread_abort_hook(thread);
 	exit_thread_obj_core(thread);
-	exit_thread_userspace(thread);
+	exit_thread_userspace(thread, keep_user_objects);
 	exit_thread_abort_cleanup(thread);
 }
 
@@ -992,11 +994,43 @@ char *z_setup_new_thread(struct k_thread *new_thread,
 			 void *p1, void *p2, void *p3,
 			 int prio, uint32_t options, const char *name)
 {
+	/* Wakes the threads joining a thread whose restart this cancels */
+	z_thread_restart_init(new_thread, stack, stack_size, entry, p1, p2, p3, prio, options);
 	z_waitq_init(&new_thread->join_queue);
 
 	return setup_thread_common(new_thread, stack, stack_size, entry,
-				   p1, p2, p3, prio, options, name);
+				   p1, p2, p3, prio, options, name, _THREAD_SLEEPING);
 }
+
+#ifdef CONFIG_THREAD_RESTART
+void z_thread_restart_setup(struct k_thread *thread)
+{
+	const struct _thread_restart *restart = &thread->restart;
+	struct k_heap *resource_pool = thread->resource_pool;
+	void *init_data = thread->init_data;
+	const char *name = NULL;
+#ifdef CONFIG_THREAD_NAME
+	char name_buf[CONFIG_THREAD_MAX_NAME_LEN];
+
+	(void)memcpy(name_buf, thread->name, sizeof(name_buf));
+	name = name_buf;
+#endif /* CONFIG_THREAD_NAME */
+#ifdef CONFIG_SCHED_CPU_MASK
+	uint32_t cpu_mask = thread->base.cpu_mask;
+#endif /* CONFIG_SCHED_CPU_MASK */
+
+	/* Dead, so that nothing can make it runnable half set up */
+	(void)setup_thread_common(thread, restart->stack, restart->stack_size, restart->entry,
+				  restart->p1, restart->p2, restart->p3, restart->prio,
+				  restart->options, name, _THREAD_DEAD);
+
+	thread->resource_pool = resource_pool;
+	thread->init_data = init_data;
+#ifdef CONFIG_SCHED_CPU_MASK
+	thread->base.cpu_mask = cpu_mask;
+#endif /* CONFIG_SCHED_CPU_MASK */
+}
+#endif /* CONFIG_THREAD_RESTART */
 
 #ifdef CONFIG_THREAD_RUNTIME_STACK_SAFETY
 int z_impl_k_thread_runtime_stack_unused_threshold_pct_set(struct k_thread *thread,
@@ -1781,7 +1815,13 @@ static inline void z_vrfy_k_wakeup(k_tid_t thread)
 void z_thread_abort(struct k_thread *thread)
 {
 	bool essential = z_is_thread_essential(thread);
+	bool restarting = false;
 	k_spinlock_key_t key = z_sched_spinlock_lock();
+
+	if (z_thread_restart_abort(thread, &restarting, key)) {
+		/* Cancelled a restart */
+		return;
+	}
 
 	if (z_is_thread_dead(thread)) {
 		z_sched_spinlock_unlock(key);
@@ -1790,7 +1830,10 @@ void z_thread_abort(struct k_thread *thread)
 
 	z_thread_halt(thread, key, true);
 
-	if (essential) {
+	/* Not reached if the thread aborted itself */
+	z_thread_restart_halted(thread);
+
+	if (essential && !restarting) {
 		__ASSERT(!essential, "aborted essential thread %p", thread);
 		k_panic();
 	}
@@ -1816,7 +1859,8 @@ int z_impl_k_thread_join(struct k_thread *thread, k_timeout_t timeout)
 
 	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_thread, join, thread, timeout);
 
-	if (z_is_thread_dead(thread) && !z_is_thread_halting(thread)) {
+	if (z_is_thread_dead(thread) && !z_is_thread_halting(thread) &&
+	    !z_thread_restart_is_pending_locked(thread)) {
 		z_sched_switch_spin(thread);
 		ret = 0;
 	} else if (K_TIMEOUT_EQ(timeout, K_NO_WAIT)) {

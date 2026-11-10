@@ -125,6 +125,11 @@ int z_impl_k_thread_stack_free(k_thread_stack_t *stack)
 {
 	struct dyn_cb_data data = {.stack = stack};
 
+	if (z_thread_restart_stack_busy(stack)) {
+		LOG_ERR("stack %p is in use by a thread waiting to restart", stack);
+		return -EBUSY;
+	}
+
 	/* Get a possible tid associated with stack */
 	k_thread_foreach(dyn_cb, &data);
 

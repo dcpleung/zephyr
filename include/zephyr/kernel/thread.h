@@ -251,6 +251,38 @@ struct z_poller {
 	uint8_t mode;
 };
 
+#ifdef CONFIG_THREAD_RESTART
+/* Parameters and state used to create a thread again, see
+ * k_thread_restart_limit_set(). Protected by the scheduler spinlock.
+ */
+struct _thread_restart {
+	/* Node in the list of threads waiting to be restarted */
+	sys_snode_t node;
+
+	/* Creation parameters, saved as passed to k_thread_create() */
+	k_thread_stack_t *stack;
+	size_t stack_size;
+	k_thread_entry_t entry;
+	void *p1;
+	void *p2;
+	void *p3;
+	uint32_t options;
+	int8_t prio;
+
+	/* Number of restarts allowed, 0 if not armed */
+	uint8_t limit;
+
+	/* Number of restarts requested since armed */
+	uint8_t count;
+
+	/* Z_THREAD_RESTART_* flags, kernel/thread_restart.c */
+	uint8_t flags;
+
+	/* CPU whose interrupt handler aborted the thread */
+	uint8_t halt_cpu;
+};
+#endif /* CONFIG_THREAD_RESTART */
+
 /**
  * @ingroup thread_apis
  * Thread Structure
@@ -405,6 +437,11 @@ struct k_thread {
 	/** Thread's priority before any mutex inheritance boost. */
 	int8_t orig_prio;
 #endif /* Z_MUTEX_PI_ENABLED */
+
+#ifdef CONFIG_THREAD_RESTART
+	/** Thread restart parameters and state */
+	struct _thread_restart restart;
+#endif /* CONFIG_THREAD_RESTART */
 
 	/** arch-specifics: must always be at the end */
 	struct _thread_arch arch;

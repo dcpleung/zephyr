@@ -7,6 +7,7 @@
 #include <zephyr/kernel.h>
 
 #include <kernel_internal.h>
+#include <kthread.h>
 #include <zephyr/sys/__assert.h>
 #include <zephyr/arch/cpu.h>
 #include <zephyr/arch/exception.h>
@@ -201,6 +202,15 @@ void z_fatal_error(unsigned int reason, const struct arch_esf *esf)
 	arch_irq_unlock(key);
 
 	if (IS_ENABLED(CONFIG_MULTITHREADING)) {
+		/* An armed thread is created again once aborted, unless the
+		 * kernel panicked
+		 */
+		if (reason == K_ERR_KERNEL_PANIC) {
+			z_thread_restart_veto(thread);
+		} else {
+			(void)z_thread_restart_request(thread, true);
+		}
+
 		k_thread_abort(thread);
 	}
 }

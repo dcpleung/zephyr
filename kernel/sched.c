@@ -552,6 +552,7 @@ void z_sched_unpend_all_locked(_wait_q_t *wait_q) ALIAS_OF(unpend_all);
 static void halt_thread(struct k_thread *thread, uint8_t new_state, k_spinlock_key_t *key)
 {
 	bool dummify = false;
+	bool restarting = z_thread_restart_is_pending_locked(thread);
 
 	/* We hold the lock, and the thread is known not to be running
 	 * anywhere.
@@ -604,7 +605,11 @@ static void halt_thread(struct k_thread *thread, uint8_t new_state, k_spinlock_k
 					(void)z_sched_spinlock_lock();
 				} while (z_try_abort_thread_timeout(thread) == -EAGAIN);
 			}
-			unpend_all(&thread->join_queue);
+
+			/* Joiners wait for the restarted thread to exit */
+			if (!restarting) {
+				unpend_all(&thread->join_queue);
+			}
 
 			/* Edge case: aborting _current from within an
 			 * ISR that preempted it requires clearing the
@@ -614,6 +619,16 @@ static void halt_thread(struct k_thread *thread, uint8_t new_state, k_spinlock_k
 			 */
 			if (thread == _current && arch_is_in_isr()) {
 				dummify = true;
+				z_thread_restart_dummify_locked();
+				/* Except in next_up(), the context switch on
+				 * interrupt exit saves into the dummy thread,
+				 * whose switch handle then tells when this
+				 * CPU no longer uses the stack. In next_up(),
+				 * it saves into the halted thread itself.
+				 */
+				if (key != NULL) {
+					z_thread_restart_isr_halt_locked(thread);
+				}
 			}
 		}
 		z_smp_halt_queue_wake(thread);
@@ -628,7 +643,7 @@ static void halt_thread(struct k_thread *thread, uint8_t new_state, k_spinlock_k
 
 		SYS_PORT_TRACING_FUNC(k_thread, sched_abort, thread);
 
-		z_thread_release(thread);
+		z_thread_release(thread, restarting);
 
 		/* Do this "set _current to dummy" step last so that
 		 * subsystems above can rely on _current being

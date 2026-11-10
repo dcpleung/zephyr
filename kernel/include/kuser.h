@@ -54,7 +54,7 @@ void z_thread_user_perms_init(struct k_thread *thread, struct k_thread *parent,
 			      uint32_t options);
 
 /* Release the user mode state of a thread being aborted. */
-void z_thread_user_exit(struct k_thread *thread);
+void z_thread_user_exit(struct k_thread *thread, bool keep_objects);
 
 /* Attach the dummy thread to the default memory domain. */
 void z_thread_user_dummy_init(struct k_thread *dummy_thread);
@@ -95,9 +95,10 @@ static inline void z_thread_user_perms_init(struct k_thread *thread, struct k_th
 	ARG_UNUSED(options);
 }
 
-static inline void z_thread_user_exit(struct k_thread *thread)
+static inline void z_thread_user_exit(struct k_thread *thread, bool keep_objects)
 {
 	ARG_UNUSED(thread);
+	ARG_UNUSED(keep_objects);
 }
 
 static inline void z_thread_user_dummy_init(struct k_thread *dummy_thread)

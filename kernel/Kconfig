@@ -198,6 +198,20 @@ config THREAD_ABORT_NEED_CLEANUP
 	  k_thread_abort(_current) is called, as the cleanup cannot be
 	  running in the current thread stack.
 
+config THREAD_RESTART
+	bool "Restart threads after a fatal error"
+	depends on MULTITHREADING && SYS_CLOCK_EXISTS
+	# The CMSIS RTOS v1 abort hook releases the thread's stack slot
+	depends on !CMSIS_RTOS_V1
+	help
+	  Allow a supervisor thread armed with k_thread_restart_limit_set()
+	  to be created again on the same thread object, with its original
+	  entry point, arguments, priority and options, instead of staying
+	  dead after a fatal error. The thread is restarted from the system
+	  work queue, up to the limit set for it. User mode threads, work
+	  queue threads and kernel panics are never restarted. Kernel
+	  objects the thread held, such as mutexes, are not released.
+
 config THREAD_CUSTOM_DATA
 	bool "Thread custom data"
 	help

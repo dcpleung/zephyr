@@ -908,6 +908,85 @@ static inline bool k_thread_is_user_thread(const struct k_thread *thread)
  */
 __syscall void k_thread_abort(k_tid_t thread);
 
+/**
+ * @brief Set how many times a thread is restarted.
+ *
+ * Arms @a thread to be created again on the same thread object when a fatal
+ * error other than a kernel panic terminates it, instead of staying dead.
+ * The thread is restarted from the system work queue with the stack, entry
+ * point, arguments, priority and options it was created with; its name, CPU
+ * mask and resource pool are kept. Every other part of the thread state
+ * starts afresh. In particular:
+ *
+ * - kernel objects the thread held, such as mutexes, are not released;
+ * - with userspace, the thread joins the memory domain of the system work
+ *   queue thread and loses the permissions granted to it before the
+ *   restart; with K_INHERIT_PERMS, it inherits those of the system work
+ *   queue thread;
+ * - a k_thread_suspend() of the thread while it waits to be restarted has
+ *   no effect.
+ *
+ * Each restart counts against @a limit; once the limit is reached the thread
+ * is no longer restarted.
+ *
+ * While a restart is pending the thread is dead but k_thread_join() waits
+ * for it, and k_thread_stack_free() of its stack returns -EBUSY (a user mode
+ * caller is oopsed instead, as for a stack in use). k_thread_abort() or
+ * k_thread_create() on the thread cancels the restart, and returns once the
+ * kernel is done with the thread, waiting for the system work queue if it is
+ * setting the thread up again. k_thread_abort() of a thread that a fatal
+ * error is about to restart also cancels the restart. An ISR cannot wait for
+ * the system work queue unless it runs on another CPU, nor for the thread it
+ * interrupted and halted: k_thread_abort() from an ISR then returns once the
+ * thread cannot run any more, and the thread object and stack must not be
+ * reused before k_thread_join() returns for it.
+ * Work items blocking the system work queue delay the restart; if the work
+ * queue refuses work, the pending restarts are cancelled.
+ *
+ * Setting the limit resets the restart count. A limit of 0 disarms the
+ * thread.
+ *
+ * @note May be called from ISRs.
+ *
+ * @kconfig_dep{CONFIG_THREAD_RESTART}
+ *
+ * @param thread Thread to arm.
+ * @param limit Maximum number of restarts, 0 to disarm.
+ *
+ * @retval 0 Limit set.
+ * @retval -EINVAL Thread is dead, an idle thread or the main thread.
+ * @retval -ENOTSUP Thread is a user mode thread or a work queue thread, or
+ *         its thread or stack object is a kernel object allocated at run time
+ *         with userspace: from k_object_alloc(), or from
+ *         k_thread_stack_alloc() with K_USER when not taken from the pool.
+ * @retval -EBUSY A restart of the thread is pending.
+ */
+int k_thread_restart_limit_set(k_tid_t thread, uint8_t limit);
+
+/**
+ * @brief Get how many times a thread may be restarted.
+ *
+ * @kconfig_dep{CONFIG_THREAD_RESTART}
+ *
+ * @param thread Thread to query.
+ *
+ * @return Restart limit, 0 if the thread is not armed.
+ */
+uint8_t k_thread_restart_limit_get(k_tid_t thread);
+
+/**
+ * @brief Get how many times a thread has been restarted.
+ *
+ * The count includes a restart that is still pending.
+ *
+ * @kconfig_dep{CONFIG_THREAD_RESTART}
+ *
+ * @param thread Thread to query.
+ *
+ * @return Number of restarts since the limit was last set.
+ */
+uint8_t k_thread_restart_count_get(k_tid_t thread);
+
 k_ticks_t z_timeout_expires(const struct _timeout *timeout);
 k_ticks_t z_timeout_remaining(const struct _timeout *timeout);
 

@@ -835,9 +835,18 @@ void k_work_queue_run(struct k_work_q *queue, const struct k_work_queue_config *
 	z_waitq_init(&queue->notifyq);
 	z_waitq_init(&queue->drainq);
 	queue->thread_id = _current;
+	/* Running the entry point again would find the queue started */
+	z_thread_restart_veto(_current);
 	flags_set(&queue->flags, flags);
 	work_queue_main(queue, NULL, NULL);
 }
+
+#ifdef CONFIG_THREAD_RESTART
+bool z_work_q_is_queue_thread(const struct k_thread *thread)
+{
+	return thread->restart.entry == work_queue_main;
+}
+#endif /* CONFIG_THREAD_RESTART */
 
 void k_work_queue_start(struct k_work_q *queue,
 			k_thread_stack_t *stack,

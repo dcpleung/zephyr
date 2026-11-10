@@ -48,13 +48,147 @@ void z_thread_monitor_exit(struct k_thread *thread);
 
 void z_thread_abort(struct k_thread *thread);
 
-/* Undo a dead thread's kernel registrations; scheduler spinlock held */
-void z_thread_release(struct k_thread *thread);
+/* Undo a dead thread's kernel registrations; scheduler spinlock held. */
+void z_thread_release(struct k_thread *thread, bool keep_user_objects);
 
 #ifdef CONFIG_THREAD_ABORT_HOOK
 /* Provided by the subsystem selecting CONFIG_THREAD_ABORT_HOOK */
 void thread_abort_hook(struct k_thread *thread);
 #endif /* CONFIG_THREAD_ABORT_HOOK */
+
+#ifdef CONFIG_THREAD_RESTART
+/* Save the creation parameters of @p thread and disarm it, cancelling a
+ * pending restart or waiting for one in progress to be cancelled. Called by
+ * z_setup_new_thread() before the join queue is initialized.
+ */
+void z_thread_restart_init(struct k_thread *thread, k_thread_stack_t *stack, size_t stack_size,
+			   k_thread_entry_t entry, void *p1, void *p2, void *p3, int prio,
+			   uint32_t options);
+
+/* Request a restart of @p thread, which is about to be aborted, by
+ * z_fatal_error() if @p fatal. Returns true if the thread will be restarted
+ * once dead. Must not be called with the scheduler spinlock held.
+ */
+bool z_thread_restart_request(struct k_thread *thread, bool fatal);
+
+/* Never restart @p thread until it is created again. */
+void z_thread_restart_veto(struct k_thread *thread);
+
+/* Return true if a restart of @p thread is pending or in progress.
+ * Scheduler spinlock held.
+ */
+bool z_thread_restart_is_pending_locked(const struct k_thread *thread);
+
+/* Abort hook, called with the scheduler spinlock held as @p key, with
+ * *@p restarting set if this caller requested a restart of @p thread. If the
+ * thread is dead, cancel its pending or in progress restart: return true with
+ * the spinlock released once the restart is undone, unless the caller cannot
+ * wait for it (an ISR, see k_thread_restart_limit_set()). Otherwise return
+ * false with the spinlock still held, and *@p restarting set if the thread is
+ * restarted once halted: also for the abort the fatal error handling of the
+ * thread makes after requesting its restart. A restart requested by anyone
+ * else is cancelled once the thread is halted.
+ */
+bool z_thread_restart_abort(struct k_thread *thread, bool *restarting, k_spinlock_key_t key);
+
+/* Called after z_thread_halt() returns from aborting @p thread: finish a
+ * cancelled restart, or make sure a requested one is carried out.
+ */
+void z_thread_restart_halted(struct k_thread *thread);
+
+/* Record that an interrupt handler on the current CPU halted @p thread,
+ * the current thread. Scheduler spinlock held.
+ */
+void z_thread_restart_isr_halt_locked(struct k_thread *thread);
+
+/* Called before an interrupt handler on the current CPU replaces the current
+ * thread with the dummy thread of the CPU, which resets the dummy thread. The
+ * CPU has switched away from the dummy thread since any earlier such halt, so
+ * the threads halted by those no longer need their stack. Scheduler spinlock
+ * held.
+ */
+void z_thread_restart_dummify_locked(void);
+
+/* Return true if @p stack belongs to a thread waiting to be restarted or
+ * being set up again.
+ */
+bool z_thread_restart_stack_busy(const k_thread_stack_t *stack);
+
+/* Set up @p thread again from its saved creation parameters, keeping its
+ * name, CPU mask, resource pool and static thread data. The thread stays
+ * dead.
+ */
+void z_thread_restart_setup(struct k_thread *thread);
+
+/* Return true if @p thread runs a work queue started by k_work_queue_start(). */
+bool z_work_q_is_queue_thread(const struct k_thread *thread);
+#else
+static inline void z_thread_restart_init(struct k_thread *thread, k_thread_stack_t *stack,
+					 size_t stack_size, k_thread_entry_t entry, void *p1,
+					 void *p2, void *p3, int prio, uint32_t options)
+{
+	ARG_UNUSED(thread);
+	ARG_UNUSED(stack);
+	ARG_UNUSED(stack_size);
+	ARG_UNUSED(entry);
+	ARG_UNUSED(p1);
+	ARG_UNUSED(p2);
+	ARG_UNUSED(p3);
+	ARG_UNUSED(prio);
+	ARG_UNUSED(options);
+}
+
+static inline bool z_thread_restart_request(struct k_thread *thread, bool fatal)
+{
+	ARG_UNUSED(thread);
+	ARG_UNUSED(fatal);
+
+	return false;
+}
+
+static inline void z_thread_restart_veto(struct k_thread *thread)
+{
+	ARG_UNUSED(thread);
+}
+
+static inline bool z_thread_restart_is_pending_locked(const struct k_thread *thread)
+{
+	ARG_UNUSED(thread);
+
+	return false;
+}
+
+static inline bool z_thread_restart_abort(struct k_thread *thread, bool *restarting,
+					  k_spinlock_key_t key)
+{
+	ARG_UNUSED(thread);
+	ARG_UNUSED(restarting);
+	ARG_UNUSED(key);
+
+	return false;
+}
+
+static inline void z_thread_restart_halted(struct k_thread *thread)
+{
+	ARG_UNUSED(thread);
+}
+
+static inline void z_thread_restart_isr_halt_locked(struct k_thread *thread)
+{
+	ARG_UNUSED(thread);
+}
+
+static inline void z_thread_restart_dummify_locked(void)
+{
+}
+
+static inline bool z_thread_restart_stack_busy(const k_thread_stack_t *stack)
+{
+	ARG_UNUSED(stack);
+
+	return false;
+}
+#endif /* CONFIG_THREAD_RESTART */
 
 static inline void thread_schedule_new(struct k_thread *thread, k_timeout_t delay)
 {

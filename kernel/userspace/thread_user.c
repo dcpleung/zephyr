@@ -45,12 +45,18 @@ void z_thread_user_perms_init(struct k_thread *thread, struct k_thread *parent, 
 	}
 }
 
-void z_thread_user_exit(struct k_thread *thread)
+void z_thread_user_exit(struct k_thread *thread, bool keep_objects)
 {
 	z_mem_domain_exit_thread(thread);
 	k_thread_perms_all_clear(thread);
-	k_object_uninit(thread->stack_obj);
-	k_object_uninit(thread);
+
+	/* Kept initialized for the restarted thread, so that user mode
+	 * threads can still join it and cannot reuse it
+	 */
+	if (!keep_objects) {
+		k_object_uninit(thread->stack_obj);
+		k_object_uninit(thread);
+	}
 }
 
 void z_thread_user_dummy_init(struct k_thread *dummy_thread)
