@@ -858,15 +858,14 @@ static inline void assert_thread_not_reused(struct k_thread *new_thread)
 }
 
 /*
- * The provided stack_size value is presumed to be either the result of
- * K_THREAD_STACK_SIZEOF(stack), or the size value passed to the instance
- * of K_THREAD_STACK_DEFINE() which defined 'stack'.
+ * Set up everything in a thread object except its join queue, so that a
+ * thread object can be set up again while threads wait to join it.
  */
-char *z_setup_new_thread(struct k_thread *new_thread,
-			 k_thread_stack_t *stack, size_t stack_size,
-			 k_thread_entry_t entry,
-			 void *p1, void *p2, void *p3,
-			 int prio, uint32_t options, const char *name)
+static char *setup_thread_common(struct k_thread *new_thread,
+				 k_thread_stack_t *stack, size_t stack_size,
+				 k_thread_entry_t entry,
+				 void *p1, void *p2, void *p3,
+				 int prio, uint32_t options, const char *name)
 {
 	char *stack_ptr;
 
@@ -877,8 +876,6 @@ char *z_setup_new_thread(struct k_thread *new_thread,
 	thread_abort_cleanup_check_reuse(new_thread);
 	init_thread_obj_core(new_thread);
 	z_thread_user_init(new_thread, stack, options);
-
-	z_waitq_init(&new_thread->join_queue);
 
 	/* Initialize various struct k_thread members */
 	z_init_thread_base(&new_thread->base, prio, _THREAD_SLEEPING, options);
@@ -982,6 +979,23 @@ void z_thread_release(struct k_thread *thread)
 	exit_thread_obj_core(thread);
 	exit_thread_userspace(thread);
 	exit_thread_abort_cleanup(thread);
+}
+
+/*
+ * The provided stack_size value is presumed to be either the result of
+ * K_THREAD_STACK_SIZEOF(stack), or the size value passed to the instance
+ * of K_THREAD_STACK_DEFINE() which defined 'stack'.
+ */
+char *z_setup_new_thread(struct k_thread *new_thread,
+			 k_thread_stack_t *stack, size_t stack_size,
+			 k_thread_entry_t entry,
+			 void *p1, void *p2, void *p3,
+			 int prio, uint32_t options, const char *name)
+{
+	z_waitq_init(&new_thread->join_queue);
+
+	return setup_thread_common(new_thread, stack, stack_size, entry,
+				   p1, p2, p3, prio, options, name);
 }
 
 #ifdef CONFIG_THREAD_RUNTIME_STACK_SAFETY
