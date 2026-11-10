@@ -22,3 +22,7 @@ tests:
       - CONFIG_SCHED_SIMPLE=y
       - CONFIG_SCHED_CPU_MASK=y
       - CONFIG_SCHED_CPU_MASK_PIN_ONLY=y
+  kernel.threads.apis.restart:
+    min_flash: 34
+    extra_configs:
+      - CONFIG_THREAD_RESTART=y
