@@ -377,7 +377,7 @@ struct k_thread {
 #endif /* CONFIG_OBJ_CORE_THREAD */
 
 #ifdef CONFIG_SMP
-	/** threads waiting in k_thread_suspend() */
+	/** threads waiting in k_thread_suspend() or k_thread_abort() */
 	_wait_q_t  halt_queue;
 #endif /* CONFIG_SMP */
 

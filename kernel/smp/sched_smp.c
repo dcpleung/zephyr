@@ -238,8 +238,6 @@ static void thread_halt_spin(struct k_thread *thread, k_spinlock_key_t key)
 void z_smp_halt_remote(struct k_thread *thread, struct _cpu *cpu,
 		       k_spinlock_key_t key, bool terminate)
 {
-	_wait_q_t *wq = terminate ? &thread->join_queue : &thread->halt_queue;
-
 	thread->base.thread_state |= (terminate ? _THREAD_ABORTING
 				      : _THREAD_SUSPENDING);
 #ifdef CONFIG_SCHED_IPI_SUPPORTED
@@ -255,7 +253,12 @@ void z_smp_halt_remote(struct k_thread *thread, struct _cpu *cpu,
 	if (arch_is_in_isr()) {
 		thread_halt_spin(thread, key);
 	} else  {
-		z_sched_add_to_waitq_locked(_current, wq);
+		/* Wait on the halt queue for both suspend and abort:
+		 * halt_thread() wakes it once the target is halted, which
+		 * is the only event this caller waits for. The join queue
+		 * belongs to k_thread_join() callers.
+		 */
+		z_sched_add_to_waitq_locked(_current, &thread->halt_queue);
 		z_swap_locked(key);
 	}
 	/* The target's next_up self-halt path passed NULL to

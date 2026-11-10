@@ -55,8 +55,8 @@ static inline void z_smp_thread_mark_idle(struct k_thread *thread)
 	thread->base.is_idle = 1U;
 }
 
-/* Wait queue on which the thread suspending @p thread waits while
- * @p thread runs on another CPU.
+/* Wait queue on which the thread suspending or aborting @p thread waits
+ * while @p thread runs on another CPU.
  */
 static inline void z_smp_halt_queue_init(struct k_thread *thread)
 {
