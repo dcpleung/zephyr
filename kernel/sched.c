@@ -37,9 +37,11 @@ extern struct k_thread *pending_current;
 struct k_spinlock _sched_spinlock;  /* The scheduler's spinlock */
 
 /* Storage to "complete" the context switch from an invalid/incomplete thread
- * context (ex: exiting an ISR that aborted _current)
+ * context (ex: exiting an ISR that aborted _current), one per CPU. Kept in
+ * coherent memory: another CPU may read the switch handle a CPU saved in its
+ * own dummy to tell that it has switched away.
  */
-__incoherent struct k_thread _thread_dummy;
+struct k_thread _thread_dummies[CONFIG_MP_MAX_NUM_CPUS];
 
 static ALWAYS_INLINE void update_cache(int preempt_ok);
 static void halt_thread(struct k_thread *thread, uint8_t new_state, k_spinlock_key_t *key);
@@ -645,15 +647,15 @@ static void halt_thread(struct k_thread *thread, uint8_t new_state, k_spinlock_k
 #ifdef CONFIG_SPIN_VALIDATE
 			/* On arches where exceptions run as ISRs (e.g. Xtensa),
 			 * the dying thread's lock tracking is never cleared via the
-			 * normal abort path.  Reset it here before _thread_dummy
-			 * takes over.  Sentinel-gated so genuine bugs still assert.
+			 * normal abort path.  Reset it here before the dummy
+			 * thread takes over.  Sentinel-gated so genuine bugs still assert.
 			 */
 			if (thread->base.swap_data ==
 			    (void *)&z_spinlock_abort_sentinel) {
 				z_spin_validate_reset(true);
 			}
 #endif
-			z_dummy_thread_init(&_thread_dummy);
+			z_dummy_thread_init(&_thread_dummies[_current_cpu->id]);
 
 		}
 

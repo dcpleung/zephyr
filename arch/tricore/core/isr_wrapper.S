@@ -107,7 +107,7 @@ z_tricore_irq_done:
 	/* Perform thread switch.
 	 *
 	 * On an ISR self-abort, kernel/sched.c halt_thread() has dummified
-	 * _current (cpus[0].current = &_thread_dummy) before this point.
+	 * _current (cpus[0].current = &_thread_dummies[0]) before this point.
 	 * The live CSA chain still belongs to the aborting thread, which
 	 * the kernel reaches via to_reclaim. Saving that chain into the
 	 * dummy would leave the aborting thread's callee_saved.pcxi stale,

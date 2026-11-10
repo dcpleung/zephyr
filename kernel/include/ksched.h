@@ -43,7 +43,8 @@ BUILD_ASSERT(K_LOWEST_APPLICATION_THREAD_PRIO
 extern "C" {
 #endif
 
-extern struct k_thread _thread_dummy;
+/* Dummy thread of each CPU, see z_dummy_thread_init() */
+extern struct k_thread _thread_dummies[CONFIG_MP_MAX_NUM_CPUS];
 
 /**
  * @brief Unpend thread, do not abort its timeout (if it exists).
