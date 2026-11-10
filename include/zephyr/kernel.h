@@ -929,6 +929,12 @@ __syscall void k_thread_abort(k_tid_t thread);
  * Each restart counts against @a limit; once the limit is reached the thread
  * is no longer restarted.
  *
+ * An armed essential thread (K_ESSENTIAL) is also restarted, instead of
+ * causing a kernel panic, when it returns from its entry point or aborts
+ * itself. Aborting it from another thread or an ISR is an error, which still
+ * causes a kernel panic. To stop such a thread for good, disarm it before it
+ * returns.
+ *
  * While a restart is pending the thread is dead but k_thread_join() waits
  * for it, and k_thread_stack_free() of its stack returns -EBUSY (a user mode
  * caller is oopsed instead, as for a stack in use). k_thread_abort() or

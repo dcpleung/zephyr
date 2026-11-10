@@ -280,11 +280,6 @@ static bool may_restart_locked(const struct k_thread *thread)
 		return false;
 	}
 
-	/* An essential thread that exits panics the kernel */
-	if (z_is_thread_essential(thread)) {
-		return false;
-	}
-
 	return (restart->count < restart->limit) && ((restart->flags & refused) == 0U);
 }
 

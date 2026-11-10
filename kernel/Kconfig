@@ -207,9 +207,11 @@ config THREAD_RESTART
 	  Allow a supervisor thread armed with k_thread_restart_limit_set()
 	  to be created again on the same thread object, with its original
 	  entry point, arguments, priority and options, instead of staying
-	  dead after a fatal error. The thread is restarted from the system
-	  work queue, up to the limit set for it. User mode threads, work
-	  queue threads and kernel panics are never restarted. Kernel
+	  dead after a fatal error. An armed essential thread is also
+	  restarted instead of causing a kernel panic when it returns from
+	  its entry point or aborts itself. The thread is restarted from the
+	  system work queue, up to the limit set for it. User mode threads,
+	  work queue threads and kernel panics are never restarted. Kernel
 	  objects the thread held, such as mutexes, are not released.
 
 config THREAD_CUSTOM_DATA

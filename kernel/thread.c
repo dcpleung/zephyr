@@ -1815,7 +1815,13 @@ static inline void z_vrfy_k_wakeup(k_tid_t thread)
 void z_thread_abort(struct k_thread *thread)
 {
 	bool essential = z_is_thread_essential(thread);
-	bool restarting = false;
+	/* An armed essential thread that ends itself is restarted instead of
+	 * panicking; aborting it from another thread or an ISR is an error.
+	 * The request comes first: a thread aborting itself does not return
+	 * from the halt.
+	 */
+	bool restarting = essential && (thread == _current) && !arch_is_in_isr() &&
+			  z_thread_restart_request(thread, false);
 	k_spinlock_key_t key = z_sched_spinlock_lock();
 
 	if (z_thread_restart_abort(thread, &restarting, key)) {

@@ -184,9 +184,12 @@ void z_thread_halt(struct k_thread *thread, k_spinlock_key_t key,
 	if (cpu != NULL) {
 		z_smp_halt_remote(thread, cpu, key, terminate);
 	} else {
+		/* Decided before halt_thread(), which may drop the lock */
+		bool restarting = z_thread_restart_is_pending_locked(thread);
+
 		halt_thread(thread, terminate ? _THREAD_DEAD : _THREAD_SUSPENDED, &key);
 		if ((thread == _current) && !arch_is_in_isr()) {
-			if (z_is_thread_essential(thread)) {
+			if (z_is_thread_essential(thread) && !restarting) {
 				z_sched_spinlock_unlock(key);
 				k_panic();
 				key = z_sched_spinlock_lock();
