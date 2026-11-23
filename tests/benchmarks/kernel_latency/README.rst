@@ -67,6 +67,14 @@ Suite / benchmark                    Operation
 ``condvar.signal_wake_switch``       signal a waiting higher priority thread
                                      with the mutex released, until that
                                      thread runs
+``irq.offload_round_trip``           ``irq_offload()`` of a handler that does
+                                     nothing
+``irq.offload_entry``                from ``irq_offload()`` to its handler
+                                     running
+``irq.offload_exit``                 from the handler to the interrupted
+                                     thread running again
+``irq.offload_wake_switch``          give from the handler to a blocked higher
+                                     priority thread, until that thread runs
 ===================================  ==========================================
 
 Running
@@ -140,5 +148,8 @@ Notes
   counter with host time rather than with emulated instructions, so numbers
   taken there are useful for comparing operations against each other and
   useless as absolute figures. Take them on hardware.
+* The ``irq`` spans include the cost of ``irq_offload()`` itself, which
+  installs the handler and raises the interrupt. It is the same on every run,
+  so the numbers still show changes to the interrupt entry and exit code.
 * Userspace variants of these operations, which ``latency_measure``
   reports, are not covered yet.

@@ -18,3 +18,4 @@ target_sources(app PRIVATE
 )
 
 target_sources_ifdef(CONFIG_EVENTS app PRIVATE src/events.c)
+target_sources_ifdef(CONFIG_IRQ_OFFLOAD app PRIVATE src/irq.c)
