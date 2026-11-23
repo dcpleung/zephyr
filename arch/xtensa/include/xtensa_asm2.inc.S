@@ -521,27 +521,10 @@ _excint_skip_ps_save_to_thread:
 
 #else
 
-	/* There's a gotcha with level 1 handlers: the INTLEVEL field
-	 * gets left at zero and not set like high priority interrupts
-	 * do.  That works fine for exceptions, but for L1 interrupts,
-	 * when we unmask EXCM below, the CPU will just fire the
-	 * interrupt again and get stuck in a loop blasting save
-	 * frames down the stack to the bottom of memory.  It would be
-	 * good to put this code into the L1 handler only, but there's
-	 * not enough room in the vector without some work there to
-	 * squash it some.  Next choice would be to make this a macro
-	 * argument and expand two versions of this handler.  An
-	 * optimization FIXME, I guess.
+	/* PS.INTLEVEL is at least 1 here: level 1 entry raised it in
+	 * DEF_EXCINT if it was zero, and higher levels arrive with it
+	 * set to their level.
 	 */
-	movi a3, PS_INTLEVEL_MASK
-	and a3, a0, a3
-	bnez a3, _not_l1
-
-	/* interrupt masking is zero, so no need to zero it before OR-ing. */
-	movi a3, PS_INTLEVEL(1)
-	or a0, a0, a3
-
-_not_l1:
 	wsr.ZSR_EPS a0
 #endif /* CONFIG_XTENSA_INTERRUPT_NONPREEMPTABLE */
 
@@ -767,6 +750,21 @@ _not_triple_fault:
 	 */
 .if \LVL == 1
 	rsr.ps a0
+#ifndef CONFIG_XTENSA_INTERRUPT_NONPREEMPTABLE
+	/* There's a gotcha with level 1 handlers: the INTLEVEL field
+	 * gets left at zero and not set like high priority interrupts
+	 * do.  That works fine for exceptions, but for L1 interrupts,
+	 * when EXCINT_HANDLER unmasks EXCM, the CPU will just fire the
+	 * interrupt again and get stuck in a loop blasting save
+	 * frames down the stack to the bottom of memory.  So raise
+	 * INTLEVEL to 1 if it is zero.  This only affects the current
+	 * PS: the interrupted PS saved below comes from A0.
+	 */
+	movi a2, PS_INTLEVEL_MASK
+	bany a0, a2, _intlevel_set\LVL
+	rsil a2, 1
+_intlevel_set\LVL:
+#endif /* !CONFIG_XTENSA_INTERRUPT_NONPREEMPTABLE */
 #ifdef CONFIG_XTENSA_MMU
 	/* TLB misses also come through level 1 interrupts.
 	 * We do not want to unconditionally unmask interrupts.
