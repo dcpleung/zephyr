@@ -384,9 +384,21 @@ _xstack_call0_\@:
 	 * if we need to swap page table later.
 	 */
 	mov a3, a6
+
+#if defined(CONFIG_XTENSA_MPU) || defined(CONFIG_XTENSA_MMU_FLUSH_AUTOREFILL_DTLBS_ON_SWAP)
+	/* Keep the outgoing thread in A2 to compare its memory domain
+	 * with the incoming one later.
+	 */
+	rsr.ZSR_CPU a2
+	l32i a2, a2, ___cpu_t_current_OFFSET
 #endif
+#endif /* CONFIG_USERSPACE */
 
 	callx4 a7		/* call handler */
+#if defined(CONFIG_USERSPACE) && \
+	(defined(CONFIG_XTENSA_MPU) || defined(CONFIG_XTENSA_MMU_FLUSH_AUTOREFILL_DTLBS_ON_SWAP))
+	mov a5, a2		/* outgoing thread */
+#endif
 	mov a2, a6		/* copy return value */
 
 	rsil a6, XCHAL_NUM_INTLEVELS
@@ -406,6 +418,17 @@ _xstack_call0_\@:
 	 */
 	rsr a6, ZSR_CPU
 	l32i a6, a6, ___cpu_t_current_OFFSET
+
+#if defined(CONFIG_XTENSA_MPU) || defined(CONFIG_XTENSA_MMU_FLUSH_AUTOREFILL_DTLBS_ON_SWAP)
+	/* As in xtensa_switch, skip swapping page tables or MPU
+	 * entries if both threads are in the same memory domain.
+	 * With the MMU otherwise, SWAP_PAGE_TABLE is lightweight
+	 * enough not to bother.
+	 */
+	l32i a4, a6, _thread_offset_to_mem_domain
+	l32i a5, a5, _thread_offset_to_mem_domain
+	beq a4, a5, _xstack_skip_table_swap_\@
+#endif
 
 #ifdef CONFIG_XTENSA_MMU
 #ifdef CONFIG_XTENSA_MMU_FLUSH_AUTOREFILL_DTLBS_ON_SWAP
