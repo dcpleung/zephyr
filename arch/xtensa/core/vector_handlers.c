@@ -330,7 +330,7 @@ static ALWAYS_INLINE void isr_enter_hook(void)
  * @return Switch handle of the next thread when leaving the outermost
  *         interrupt, @p interrupted otherwise.
  */
-static inline void *return_to(void *interrupted)
+static ALWAYS_INLINE void *return_to(void *interrupted)
 {
 #ifdef CONFIG_MULTITHREADING
 	void *next =
@@ -525,7 +525,7 @@ static const uint32_t xtensa_lvl_mask[MAX_INTR_LEVEL][GRP_COUNT] = {
  *
  * @param irq_lvl Interrupt level, starting at 1.
  */
-__unused static void xtensa_handle_irq_lvl(int irq_lvl)
+static ALWAYS_INLINE void xtensa_handle_irq_lvl(int irq_lvl)
 {
 	int irq;
 	uint32_t irq_mask;
