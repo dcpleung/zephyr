@@ -328,9 +328,10 @@ _swap_page_table_\@:
  *
  * Enter this macro with a valid "context saved" pointer (i.e. SP
  * should point to a stored pointer which points to one BSA below the
- * interrupted/old stack) in A1, a handler function in A2, and a "new"
- * stack pointer (i.e. a pointer to the word ABOVE the allocated stack
- * area) in A3.  Exceptions should be enabled via PS.EXCM, but
+ * interrupted/old stack) in A1, a handler function in the scratch
+ * slot of that BSA, and a "new" stack pointer (i.e. a pointer to the
+ * word ABOVE the allocated stack area) in A3.  A2 is scratch on
+ * entry.  Exceptions should be enabled via PS.EXCM, but
  * PS.INTLEVEL must (!) be set such that no nested interrupts can
  * arrive (we restore the natural INTLEVEL from the value in ZSR_EPS
  * just before entering the call).  On return A0/1 will be unchanged,
@@ -344,11 +345,10 @@ _swap_page_table_\@:
 	/* Since accessing A4-A11 may trigger window overflows so
 	 * we need to setup A0 and A1 correctly before putting
 	 * the function arguments for the next two callx4 into
-	 * A6, A10 and A11. So stash the "context handle" into
-	 * ZSR_EPC, which is usable for now similar to ZSR_EPS.
+	 * A6, A10 and A11. So keep the "context handle" in A2
+	 * meanwhile, and load the handler from the BSA afterwards.
 	 */
-	wsr.ZSR_EPC a1
-	rsync
+	mov a2, a1
 
 	/* Recover the interrupted SP from the BSA */
 	l32i a1, a1, 0
@@ -357,9 +357,12 @@ _swap_page_table_\@:
 
 	mov a6, a3		/* place "new sp" in the next frame's A2 */
 
-	rsr.ZSR_EPC a3		/* restore saved "context handle" in A3 */
-	mov a10, a3             /* pass "context handle" in 2nd frame's A2 */
-	mov a11, a2		/* handler in 2nd frame's A3, next frame's A7 */
+	mov a3, a2		/* keep "context handle" in A3 */
+	mov a10, a2             /* pass "context handle" in 2nd frame's A2 */
+
+	/* handler in 2nd frame's A3, next frame's A7 */
+	addi a11, a1, -___xtensa_irq_bsa_t_SIZEOF
+	l32i a11, a11, ___xtensa_irq_bsa_t_scratch_OFFSET
 
 	call4 _xstack_call0_\@
 	mov a1, a3		/* restore original SP */
@@ -437,7 +440,7 @@ _xstack_returned_\@:
 .macro EXCINT_HANDLER NEST_OFF, INTSTACK_OFF
 	/* A2 contains our handler function which will get clobbered
 	 * by the save.  Stash it into the unused "a1" slot in the
-	 * BSA and recover it immediately after.  Kind of a hack.
+	 * BSA, where CROSS_STACK_CALL picks it up.  Kind of a hack.
 	 */
 	s32i a2, a1, ___xtensa_irq_bsa_t_scratch_OFFSET
 
@@ -475,9 +478,6 @@ _excint_skip_ps_save_to_thread:
 #endif
 
 	call0 xtensa_save_high_regs
-
-	l32i a2, a1, 0
-	l32i a2, a2, ___xtensa_irq_bsa_t_scratch_OFFSET
 
 #if XCHAL_HAVE_THREADPTR && defined(CONFIG_USERSPACE)
 	/* Clear up the threadptr because it is used
@@ -533,7 +533,7 @@ _excint_skip_ps_save_to_thread:
 	wsr.ps a0
 	rsync
 
-	/* A1 already contains our saved stack, and A2 our handler.
+	/* A1 already contains our saved stack, and the BSA our handler.
 	 * So all that's needed for CROSS_STACK_CALL is to put the
 	 * "new" stack into A3.  This can be either a copy of A1 or an
 	 * entirely new area depending on whether we find a 1 in our
