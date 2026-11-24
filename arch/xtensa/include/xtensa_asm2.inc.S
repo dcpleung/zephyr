@@ -411,6 +411,26 @@ _xstack_call0_\@:
 	 */
 	beq a2, a3, _xstack_skip_table_swap_\@
 
+#if defined(CONFIG_XTENSA_MPU) || defined(CONFIG_XTENSA_MMU_FLUSH_AUTOREFILL_DTLBS_ON_SWAP)
+	mov a3, a5		/* outgoing thread */
+#endif
+
+#ifdef CONFIG_XTENSA_MMU
+	/* The interrupted thread may run on a user stack, mapped with
+	 * the user ASID in its page tables.  Spill its register windows
+	 * now, while those page tables are active: with the incoming
+	 * thread's ones, an access to that stack auto-refills a DTLB
+	 * entry with the kernel ASID.  When the interrupted thread runs
+	 * again, both entries match, and the DTLB multi-hit is taken on
+	 * its stack, where the exception entry cannot save anything
+	 * either.  EXCINT_HANDLER does not touch that stack after
+	 * returning from here.
+	 *
+	 * This keeps A0-A3 and clobbers A4-A15.
+	 */
+	SPILL_ALL_WINDOWS
+#endif
+
 	/* Need to switch page tables because the "next" handle
 	 * returned above is not the same handle as we started
 	 * with. This means we are being restored to another
@@ -426,7 +446,7 @@ _xstack_call0_\@:
 	 * enough not to bother.
 	 */
 	l32i a4, a6, _thread_offset_to_mem_domain
-	l32i a5, a5, _thread_offset_to_mem_domain
+	l32i a5, a3, _thread_offset_to_mem_domain
 	beq a4, a5, _xstack_skip_table_swap_\@
 #endif
 
@@ -596,13 +616,16 @@ _do_call_\@:
 	 */
 	beq a6, a1, _restore_\@
 
-#if !defined(CONFIG_KERNEL_COHERENCE)
+#if !defined(CONFIG_KERNEL_COHERENCE) && \
+	!(defined(CONFIG_USERSPACE) && defined(CONFIG_XTENSA_MMU))
 	l32i a1, a1, 0
 	l32i a0, a1, ___xtensa_irq_bsa_t_a0_OFFSET
 	addi a1, a1, ___xtensa_irq_bsa_t_SIZEOF
 
 	/* When using coherence, the registers of the interrupted
-	 * context got spilled upstream in arch_cohere_stacks()
+	 * context got spilled upstream in arch_cohere_stacks().
+	 * With userspace and the MMU, CROSS_STACK_CALL spilled them
+	 * before swapping page tables.
 	 */
 	SPILL_ALL_WINDOWS
 #endif
