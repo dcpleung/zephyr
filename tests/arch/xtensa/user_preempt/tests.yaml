@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: Copyright The Zephyr Project Contributors
+# SPDX-License-Identifier: Apache-2.0
+
+tests:
+  arch.xtensa.user_preempt:
+    arch_allow: xtensa
+    filter: CONFIG_ARCH_HAS_USERSPACE and not CONFIG_SMP
+    platform_allow:
+      - qemu_xtensa/dc233c/mmu
+      - qemu_xtensa/sample_controller32/mpu
+    integration_platforms:
+      - qemu_xtensa/dc233c/mmu
+    tags:
+      - kernel
+      - interrupt
+      - userspace
