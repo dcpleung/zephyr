@@ -522,6 +522,10 @@ static const uint32_t xtensa_lvl_mask[MAX_INTR_LEVEL][GRP_COUNT] = {
  * - Supports up to 128 interrupts (max supported by Xtensa)
  * - Supports all IRQ levels
  * - Uses __builtin_ctz that for most xtensa configurations will be optimized using nsau instruction
+ * - Reads the pending interrupts of all groups again once they have been
+ *   handled, so interrupts of this level raised meanwhile are handled
+ *   without leaving and re-entering the interrupt. Each pass serves every
+ *   group, so a busy group does not starve the others.
  *
  * @param irq_lvl Interrupt level, starting at 1.
  */
@@ -530,56 +534,63 @@ static ALWAYS_INLINE void xtensa_handle_irq_lvl(int irq_lvl)
 	int irq;
 	uint32_t irq_mask;
 	uint32_t intenable;
+	uint32_t handled;
+
+	do {
+		handled = 0U;
 #if XCHAL_NUM_INTERRUPTS > 0
-	__asm__ volatile("rsr.interrupt %0" : "=r"(irq_mask));
-	__asm__ volatile("rsr.intenable %0" : "=r"(intenable));
-	irq_mask &= intenable;
-	irq_mask &= xtensa_lvl_mask[irq_lvl - 1][0];
-	while (irq_mask) {
-		irq = __builtin_ctz(irq_mask);
-		_sw_isr_table[irq].isr(_sw_isr_table[irq].arg);
-		__asm__ volatile("wsr.intclear %0" : : "r"(BIT(irq)));
-		irq_mask ^= BIT(irq);
-	}
+		__asm__ volatile("rsr.interrupt %0" : "=r"(irq_mask));
+		__asm__ volatile("rsr.intenable %0" : "=r"(intenable));
+		irq_mask &= intenable;
+		irq_mask &= xtensa_lvl_mask[irq_lvl - 1][0];
+		handled |= irq_mask;
+		while (irq_mask != 0U) {
+			irq = __builtin_ctz(irq_mask);
+			_sw_isr_table[irq].isr(_sw_isr_table[irq].arg);
+			__asm__ volatile("wsr.intclear %0" : : "r"(BIT(irq)));
+			irq_mask ^= BIT(irq);
+		}
 #endif
 #if XCHAL_NUM_INTERRUPTS > 32
-	__asm__ volatile("rsr.interrupt1 %0" : "=r"(irq_mask));
-	__asm__ volatile("rsr.intenable1 %0" : "=r"(intenable));
-	irq_mask &= intenable;
-	irq_mask &= xtensa_lvl_mask[irq_lvl - 1][1];
-	while (irq_mask) {
-		irq = __builtin_ctz(irq_mask);
-		_sw_isr_table[irq + 32].isr(_sw_isr_table[irq + 32].arg);
-		__asm__ volatile("wsr.intclear1 %0" : : "r"(BIT(irq)));
-		irq_mask ^= BIT(irq);
-	}
+		__asm__ volatile("rsr.interrupt1 %0" : "=r"(irq_mask));
+		__asm__ volatile("rsr.intenable1 %0" : "=r"(intenable));
+		irq_mask &= intenable;
+		irq_mask &= xtensa_lvl_mask[irq_lvl - 1][1];
+		handled |= irq_mask;
+		while (irq_mask != 0U) {
+			irq = __builtin_ctz(irq_mask);
+			_sw_isr_table[irq + 32].isr(_sw_isr_table[irq + 32].arg);
+			__asm__ volatile("wsr.intclear1 %0" : : "r"(BIT(irq)));
+			irq_mask ^= BIT(irq);
+		}
 #endif
-
 #if XCHAL_NUM_INTERRUPTS > 64
-	__asm__ volatile("rsr.interrupt2 %0" : "=r"(irq_mask));
-	__asm__ volatile("rsr.intenable2 %0" : "=r"(intenable));
-	irq_mask &= intenable;
-	irq_mask &= xtensa_lvl_mask[irq_lvl - 1][2];
-	while (irq_mask) {
-		irq = __builtin_ctz(irq_mask);
-		_sw_isr_table[irq + 64].isr(_sw_isr_table[irq + 64].arg);
-		__asm__ volatile("wsr.intclear2 %0" : : "r"(BIT(irq)));
-		irq_mask ^= BIT(irq);
-	}
+		__asm__ volatile("rsr.interrupt2 %0" : "=r"(irq_mask));
+		__asm__ volatile("rsr.intenable2 %0" : "=r"(intenable));
+		irq_mask &= intenable;
+		irq_mask &= xtensa_lvl_mask[irq_lvl - 1][2];
+		handled |= irq_mask;
+		while (irq_mask != 0U) {
+			irq = __builtin_ctz(irq_mask);
+			_sw_isr_table[irq + 64].isr(_sw_isr_table[irq + 64].arg);
+			__asm__ volatile("wsr.intclear2 %0" : : "r"(BIT(irq)));
+			irq_mask ^= BIT(irq);
+		}
 #endif
 #if XCHAL_NUM_INTERRUPTS > 96
-	__asm__ volatile("rsr.interrupt3 %0" : "=r"(irq_mask));
-	__asm__ volatile("rsr.intenable3 %0" : "=r"(intenable));
-	irq_mask &= intenable;
-	irq_mask &= xtensa_lvl_mask[irq_lvl - 1][3];
-
-	while (irq_mask) {
-		irq = __builtin_ctz(irq_mask);
-		_sw_isr_table[irq + 96].isr(_sw_isr_table[irq + 96].arg);
-		__asm__ volatile("wsr.intclear3 %0" : : "r"(BIT(irq)));
-		irq_mask ^= BIT(irq);
-	}
+		__asm__ volatile("rsr.interrupt3 %0" : "=r"(irq_mask));
+		__asm__ volatile("rsr.intenable3 %0" : "=r"(intenable));
+		irq_mask &= intenable;
+		irq_mask &= xtensa_lvl_mask[irq_lvl - 1][3];
+		handled |= irq_mask;
+		while (irq_mask != 0U) {
+			irq = __builtin_ctz(irq_mask);
+			_sw_isr_table[irq + 96].isr(_sw_isr_table[irq + 96].arg);
+			__asm__ volatile("wsr.intclear3 %0" : : "r"(BIT(irq)));
+			irq_mask ^= BIT(irq);
+		}
 #endif
+	} while (handled != 0U);
 }
 
 /**
